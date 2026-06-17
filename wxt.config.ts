@@ -5,7 +5,7 @@ export default defineConfig({
   srcDir: 'src',
   manifest: {
     name: 'ZRSS',
-    description: 'A modern RSS reader with clean interface',
+    description: '界面简洁的现代 RSS 阅读器',
     permissions: ['alarms', 'scripting', 'activeTab'],
     host_permissions: ['<all_urls>'],
     icons: {
