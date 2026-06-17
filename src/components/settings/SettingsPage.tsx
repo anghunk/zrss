@@ -1,0 +1,401 @@
+import { useUIStore } from '@/stores/uiStore';
+import { useFeedStore } from '@/stores/feedStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { exportToOPML, importFromOPML } from '@/lib/opml';
+import {
+  exportToWebDAV,
+  importFromWebDAV,
+  testWebDAVConnection,
+  listWebDAVBackups,
+  deleteWebDAVBackup,
+} from '@/lib/sync/webdav';
+import {
+  Download,
+  Upload,
+  Cloud,
+  Settings as SettingsIcon,
+  ArrowUpDown,
+  CloudCog,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { cn } from '@/lib/utils';
+
+type SettingsSection = 'general' | 'opml' | 'sync';
+
+const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
+  { id: 'general', label: '通用', icon: <SettingsIcon className="h-4 w-4" /> },
+  { id: 'opml', label: '导入 / 导出', icon: <ArrowUpDown className="h-4 w-4" /> },
+  { id: 'sync', label: 'WebDAV 同步', icon: <CloudCog className="h-4 w-4" /> },
+];
+
+export function SettingsPage() {
+  const { settings, loadSettings, updateSettings, theme, setTheme } = useUIStore();
+  const { loadFeeds } = useFeedStore();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [activeSection, setActiveSection] = useState<SettingsSection>('general');
+  const [backupFiles, setBackupFiles] = useState<string[]>([]);
+  const [showBackupDialog, setShowBackupDialog] = useState(false);
+  const [deletingFile, setDeletingFile] = useState<string>('');
+
+  useEffect(() => {
+    if (!settings) {
+      loadSettings();
+    }
+  }, [settings, loadSettings]);
+
+  const handleExportOPML = async () => {
+    try {
+      const opml = await exportToOPML();
+      const blob = new Blob([opml], { type: 'application/xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `zrss-subscriptions-${new Date().toISOString().slice(0, 10)}.opml`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatus({ message: '导出成功！', type: 'success' });
+    } catch (err) {
+      setStatus({ message: `导出失败：${err}`, type: 'error' });
+    }
+  };
+
+  const handleImportOPML = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const result = await importFromOPML(text);
+      await loadFeeds();
+      setStatus({
+        message: `已导入 ${result.added} 个订阅` +
+          (result.errors.length > 0 ? `，${result.errors.length} 个错误` : ''),
+        type: result.errors.length > 0 ? 'error' : 'success',
+      });
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (err) {
+      setStatus({ message: `导入失败：${err}`, type: 'error' });
+    }
+  };
+
+  if (!settings) return null;
+
+  return (
+    <div className="flex h-full w-full">
+      {/* 左侧菜单 */}
+      <div className="w-48 shrink-0 border-r bg-muted/20">
+        <div className="px-4 py-4">
+          <h2 className="text-sm font-semibold text-muted-foreground">设置</h2>
+        </div>
+        <nav className="space-y-0.5 px-2">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => {
+                setActiveSection(section.id);
+                setStatus(null);
+                setBackupFiles([]);
+                setShowBackupDialog(false);
+              }}
+              className={cn(
+                'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                activeSection === section.id
+                  ? 'bg-accent text-accent-foreground font-medium'
+                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+              )}
+            >
+              {section.icon}
+              {section.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* 右侧内容 */}
+      <div className="flex-1 overflow-hidden">
+        <ScrollArea className="h-full">
+          <div className="mx-auto w-full max-w-xl space-y-6 p-6">
+            {activeSection === 'general' && (
+              <>
+                {/* Theme */}
+                <section className="space-y-3">
+                  <Label>主题</Label>
+                  <div className="flex gap-2">
+                    {(['light', 'dark', 'system'] as const).map((t) => (
+                      <Button
+                        key={t}
+                        variant={theme === t ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setTheme(t)}
+                        className="capitalize"
+                      >
+                        {t === 'light' ? '浅色' : t === 'dark' ? '深色' : '跟随系统'}
+                      </Button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* Refresh interval */}
+                <section className="space-y-2">
+                  <Label htmlFor="refresh-interval">刷新间隔（分钟）</Label>
+                  <Input
+                    id="refresh-interval"
+                    type="number"
+                    min={1}
+                    max={120}
+                    value={settings.refreshInterval}
+                    onChange={(e) =>
+                      updateSettings({
+                        refreshInterval: Number(e.target.value) || 15,
+                      })
+                    }
+                  />
+                </section>
+
+                {/* Auto mark read */}
+                <section className="flex items-center justify-between">
+                  <div>
+                    <Label>自动标记为已读</Label>
+                    <p className="text-xs text-muted-foreground">
+                      打开文章时自动标记为已读
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.autoMarkRead}
+                    onCheckedChange={(checked) =>
+                      updateSettings({ autoMarkRead: checked })
+                    }
+                  />
+                </section>
+
+                {/* Max articles per feed */}
+                <section className="space-y-2">
+                  <Label htmlFor="max-articles">每个订阅最大文章数</Label>
+                  <Input
+                    id="max-articles"
+                    type="number"
+                    min={50}
+                    max={5000}
+                    value={settings.maxArticlesPerFeed}
+                    onChange={(e) =>
+                      updateSettings({
+                        maxArticlesPerFeed: Number(e.target.value) || 500,
+                      })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    星标文章永远不会被删除。
+                  </p>
+                </section>
+              </>
+            )}
+
+            {activeSection === 'opml' && (
+              <>
+                <section className="space-y-3">
+                  <Label className="text-base font-semibold">OPML 导入 / 导出</Label>
+                  <p className="text-sm text-muted-foreground">
+                    将订阅导出为 OPML 格式，或从其他阅读器导入订阅。
+                  </p>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportOPML}>
+                      <Download className="mr-2 h-4 w-4" />
+                      导出 OPML
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      导入 OPML
+                    </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".opml,.xml"
+                      className="hidden"
+                      onChange={handleImportOPML}
+                    />
+                  </div>
+                  {status && (
+                    <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
+                  )}
+                </section>
+              </>
+            )}
+
+            {activeSection === 'sync' && (
+              <>
+                <section className="space-y-3">
+                  <Label className="text-base font-semibold">WebDAV 同步</Label>
+                  <p className="text-sm text-muted-foreground">
+                    通过 WebDAV 同步你的订阅到云端。
+                  </p>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="WebDAV 链接"
+                      value={settings.webdavUrl}
+                      onChange={(e) => updateSettings({ webdavUrl: e.target.value })}
+                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="用户名"
+                        value={settings.webdavUser}
+                        onChange={(e) =>
+                          updateSettings({ webdavUser: e.target.value })
+                        }
+                        className="flex-1"
+                      />
+                      <Input
+                        placeholder="密码"
+                        type="password"
+                        value={settings.webdavPass}
+                        onChange={(e) =>
+                          updateSettings({ webdavPass: e.target.value })
+                        }
+                        className="flex-1"
+                      />
+                    </div>
+                    <Input
+                      placeholder="保存目录 (留空使用 WebDAV 根目录，例如 zrss)"
+                      value={settings.webdavPath}
+                      onChange={(e) => updateSettings({ webdavPath: e.target.value })}
+                    />
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const result = await testWebDAVConnection();
+                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                        }}
+                      >
+                        <Cloud className="mr-2 h-4 w-4" />
+                        测试连接
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const result = await exportToWebDAV();
+                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                        }}
+                      >
+                        <Upload className="mr-2 h-4 w-4" />
+                        上传同步
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          const result = await listWebDAVBackups();
+                          if (result.success) {
+                            setBackupFiles(result.files);
+                            setShowBackupDialog(true);
+                            setStatus({ message: result.message, type: 'success' });
+                          } else {
+                            setStatus({ message: result.message, type: 'error' });
+                          }
+                        }}
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        下载同步
+                      </Button>
+                    </div>
+                    <Dialog open={showBackupDialog} onOpenChange={setShowBackupDialog}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>选择备份文件</DialogTitle>
+                          <DialogDescription>
+                            共找到 {backupFiles.length} 个备份，点击导入或右侧删除。
+                          </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="max-h-80">
+                          {backupFiles.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-muted-foreground">
+                              暂无备份文件
+                            </div>
+                          ) : (
+                            <ul className="space-y-1">
+                              {backupFiles.map((file) => (
+                                <li
+                                  key={file}
+                                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+                                >
+                                  <span className="flex-1 truncate text-sm">{file}</span>
+                                  <div className="flex gap-1">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={async () => {
+                                        const result = await importFromWebDAV(file);
+                                        setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                                        if (result.success) {
+                                          await loadFeeds();
+                                          setShowBackupDialog(false);
+                                        }
+                                      }}
+                                    >
+                                      导入
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      className="h-8 w-8 text-red-500 hover:text-red-600"
+                                      disabled={deletingFile === file}
+                                      onClick={async () => {
+                                        if (!confirm(`确定删除备份 ${file}？`)) return;
+                                        setDeletingFile(file);
+                                        const result = await deleteWebDAVBackup(file);
+                                        setDeletingFile('');
+                                        if (result.success) {
+                                          setBackupFiles((prev) => prev.filter((f) => f !== file));
+                                          setStatus({ message: result.message, type: 'success' });
+                                        } else {
+                                          setStatus({ message: result.message, type: 'error' });
+                                        }
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  {status && (
+                    <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
+                  )}
+                </section>
+              </>
+            )}
+
+            <div className="h-6" />
+          </div>
+        </ScrollArea>
+      </div>
+    </div>
+  );
+}

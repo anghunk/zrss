@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZRSS</title>
+  <meta name="manifest.default_icon" content='{"16": "/icon-16.png", "48": "/icon-48.png", "128": "/icon-128.png"}' />
+  <script>
+    // React Fast Refresh polyfill - must be before any module loads
+    window.$RefreshSig$ = function() { return function() {}; };
+    window.$RefreshReg$ = function() {};
+    window.$RefreshInterceptModule$ = function() { return function() {}; };
+  </script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="./main.tsx"></script>
+</body>
+</html>
