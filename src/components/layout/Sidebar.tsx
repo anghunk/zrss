@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Feed, Folder as FolderType } from '@/types';
+import logoImg from '@/assets/logo.png';
 
 // ---- drag state ----
 type DragItem =
@@ -215,7 +216,7 @@ export function Sidebar() {
       {/* Header */}
       <div className="flex items-center justify-between border-b p-3">
         <div className="flex items-center gap-2">
-          <Rss className="h-5 w-5 text-primary" />
+          <img src={logoImg} alt="ZRSS" className="h-6 w-6" />
           <span className="font-semibold">ZRSS</span>
           {totalUnread > 0 && (
             <Badge variant="secondary" className="ml-1 text-xs">

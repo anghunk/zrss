@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Rss, Loader2, Plus, ExternalLink, Check } from 'lucide-react';
+import { Rss, Loader2, Plus, ExternalLink, Check, Trash2 } from 'lucide-react';
+import logoImg from '@/assets/logo.png';
 import { detectFeedsInTab, type DetectedFeed } from '@/lib/rss-detector';
 import { db } from '@/lib/db';
 
@@ -73,6 +74,24 @@ export function PopupApp() {
     }
   }
 
+  // 取消订阅：从数据库中删除该 feed
+  async function handleUnsubscribe(feed: DetectedFeed) {
+    try {
+      const existing = await db.feeds.where('url').equals(feed.url).first();
+      if (existing) {
+        await db.feeds.delete(existing.id);
+        // 更新已订阅列表
+        setSubscribedUrls((prev) => {
+          const next = new Set(prev);
+          next.delete(feed.url);
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('[ZRSS popup] unsubscribe failed:', err);
+    }
+  }
+
   // 打开阅读器（不预填）
   async function openReader() {
     const readerUrl = browser.runtime.getURL('reader.html');
@@ -84,11 +103,29 @@ export function PopupApp() {
     <div className="w-72 bg-background p-3 text-foreground">
       {/* 标题 */}
       <div className="flex items-center gap-2 mb-3">
-        <Rss className="h-5 w-5 text-primary" />
+        <img src={logoImg} alt="ZRSS" className="h-5 w-5" />
         <span className="font-semibold text-sm">ZRSS</span>
         <span className="ml-auto text-[10px] text-muted-foreground">
           当前页面 RSS
         </span>
+      </div>
+
+      {/* 顶部操作 */}
+      <div className="flex gap-2 mb-3">
+        <button
+          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
+          onClick={openReader}
+        >
+          <ExternalLink className="h-3 w-3" />
+          打开阅读器
+        </button>
+        <button
+          className="inline-flex items-center justify-center rounded-md border px-2 py-1.5 text-xs hover:bg-accent"
+          onClick={detect}
+          disabled={status === 'loading'}
+        >
+          <Loader2 className={`h-3 w-3 ${status === 'loading' ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* 检测中的状态 */}
@@ -101,7 +138,7 @@ export function PopupApp() {
 
       {/* 检测到 feeds */}
       {status === 'found' && (
-        <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
+        <div className="space-y-1.5 max-h-64 overflow-y-auto">
           {feeds.map((feed) => {
             const isBusy = subscribing === feed.url;
             const isSubscribed = subscribedUrls.has(feed.url);
@@ -127,10 +164,16 @@ export function PopupApp() {
                   {typeLabel}
                 </span>
                 {isSubscribed ? (
-                  <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                    <Check className="h-3 w-3" />
-                    已订阅
-                  </span>
+                  <div className="shrink-0 flex items-center gap-1">
+                    <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    <button
+                      className="inline-flex items-center justify-center rounded p-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleUnsubscribe(feed)}
+                      title="取消订阅"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 ) : (
                   <button
                     className="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
@@ -168,24 +211,6 @@ export function PopupApp() {
           </p>
         </div>
       )}
-
-      {/* 底部操作 */}
-      <div className="flex gap-2 pt-1">
-        <button
-          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs hover:bg-accent"
-          onClick={openReader}
-        >
-          <ExternalLink className="h-3 w-3" />
-          打开阅读器
-        </button>
-        <button
-          className="inline-flex items-center justify-center rounded-md border px-2 py-1.5 text-xs hover:bg-accent"
-          onClick={detect}
-          disabled={status === 'loading'}
-        >
-          <Loader2 className={`h-3 w-3 ${status === 'loading' ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
     </div>
   );
 }

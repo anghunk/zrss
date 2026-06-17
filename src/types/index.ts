@@ -50,6 +50,20 @@ export interface Settings {
   webdavPass: string;
   webdavPath: string;
   theme: 'light' | 'dark' | 'system';
+  // AI 功能
+  aiEnabled: boolean;                    // 是否启用 AI 摘要功能
+  activeProviderId: string | null;       // 当前选中的供应商 ID
+  aiProviders: { [key: string]: {
+    id: string;
+    name: string;
+    baseUrl: string;
+    apiKey: string;
+    apiFormat: 'openai' | 'anthropic';
+    models: string[];
+    currentModel: string;
+    modelsUpdatedAt?: number;
+  }};
+  aiAutoSummarize: boolean;              // 打开文章时自动摘要, 默认 false
 }
 
 // 筛选类型

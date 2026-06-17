@@ -20,6 +20,7 @@ import {
   listWebDAVBackups,
   deleteWebDAVBackup,
 } from '@/lib/sync/webdav';
+import { AIModelManager } from './AIModelManager';
 import {
   Download,
   Upload,
@@ -28,16 +29,18 @@ import {
   ArrowUpDown,
   CloudCog,
   Trash2,
+  Brain,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'general' | 'opml' | 'sync';
+type SettingsSection = 'general' | 'opml' | 'sync' | 'ai';
 
 const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
   { id: 'general', label: '通用', icon: <SettingsIcon className="h-4 w-4" /> },
   { id: 'opml', label: '导入 / 导出', icon: <ArrowUpDown className="h-4 w-4" /> },
   { id: 'sync', label: 'WebDAV 同步', icon: <CloudCog className="h-4 w-4" /> },
+  { id: 'ai', label: 'AI 服务', icon: <Brain className="h-4 w-4" /> },
 ];
 
 export function SettingsPage() {
@@ -130,271 +133,317 @@ export function SettingsPage() {
 
       {/* 右侧内容 */}
       <div className="flex-1 overflow-hidden">
-        <ScrollArea className="h-full">
-          <div className="mx-auto w-full max-w-xl space-y-6 p-6">
-            {activeSection === 'general' && (
-              <>
-                {/* Theme */}
-                <section className="space-y-3">
-                  <Label>主题</Label>
-                  <div className="flex gap-2">
-                    {(['light', 'dark', 'system'] as const).map((t) => (
-                      <Button
-                        key={t}
-                        variant={theme === t ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setTheme(t)}
-                        className="capitalize"
-                      >
-                        {t === 'light' ? '浅色' : t === 'dark' ? '深色' : '跟随系统'}
-                      </Button>
-                    ))}
-                  </div>
-                </section>
-
-                {/* Refresh interval */}
-                <section className="space-y-2">
-                  <Label htmlFor="refresh-interval">刷新间隔（分钟）</Label>
-                  <Input
-                    id="refresh-interval"
-                    type="number"
-                    min={1}
-                    max={120}
-                    value={settings.refreshInterval}
-                    onChange={(e) =>
-                      updateSettings({
-                        refreshInterval: Number(e.target.value) || 15,
-                      })
-                    }
-                  />
-                </section>
-
-                {/* Auto mark read */}
-                <section className="flex items-center justify-between">
-                  <div>
-                    <Label>自动标记为已读</Label>
-                    <p className="text-xs text-muted-foreground">
-                      打开文章时自动标记为已读
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.autoMarkRead}
-                    onCheckedChange={(checked) =>
-                      updateSettings({ autoMarkRead: checked })
-                    }
-                  />
-                </section>
-
-                {/* Max articles per feed */}
-                <section className="space-y-2">
-                  <Label htmlFor="max-articles">每个订阅最大文章数</Label>
-                  <Input
-                    id="max-articles"
-                    type="number"
-                    min={50}
-                    max={5000}
-                    value={settings.maxArticlesPerFeed}
-                    onChange={(e) =>
-                      updateSettings({
-                        maxArticlesPerFeed: Number(e.target.value) || 500,
-                      })
-                    }
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    星标文章永远不会被删除。
-                  </p>
-                </section>
-              </>
-            )}
-
-            {activeSection === 'opml' && (
-              <>
-                <section className="space-y-3">
-                  <Label className="text-base font-semibold">OPML 导入 / 导出</Label>
-                  <p className="text-sm text-muted-foreground">
-                    将订阅导出为 OPML 格式，或从其他阅读器导入订阅。
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={handleExportOPML}>
-                      <Download className="mr-2 h-4 w-4" />
-                      导出 OPML
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="mr-2 h-4 w-4" />
-                      导入 OPML
-                    </Button>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".opml,.xml"
-                      className="hidden"
-                      onChange={handleImportOPML}
-                    />
-                  </div>
-                  {status && (
-                    <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
-                  )}
-                </section>
-              </>
-            )}
-
-            {activeSection === 'sync' && (
-              <>
-                <section className="space-y-3">
-                  <Label className="text-base font-semibold">WebDAV 同步</Label>
-                  <p className="text-sm text-muted-foreground">
-                    通过 WebDAV 同步你的订阅到云端。
-                  </p>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="WebDAV 链接"
-                      value={settings.webdavUrl}
-                      onChange={(e) => updateSettings({ webdavUrl: e.target.value })}
-                    />
+        {activeSection === 'ai' ? (
+          /* AI 服务 - 特殊布局 */
+          <div className="h-full p-4">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">AI 服务</h2>
+              <p className="text-sm text-muted-foreground">
+                管理 AI 供应商配置，选择当前使用的模型
+              </p>
+            </div>
+            <AIModelManager />
+          </div>
+        ) : (
+          <ScrollArea className="h-full">
+            <div className="mx-auto w-full max-w-xl space-y-6 p-6">
+              {activeSection === 'general' && (
+                <>
+                  {/* Theme */}
+                  <section className="space-y-3">
+                    <Label>主题</Label>
                     <div className="flex gap-2">
-                      <Input
-                        placeholder="用户名"
-                        value={settings.webdavUser}
-                        onChange={(e) =>
-                          updateSettings({ webdavUser: e.target.value })
-                        }
-                        className="flex-1"
-                      />
-                      <Input
-                        placeholder="密码"
-                        type="password"
-                        value={settings.webdavPass}
-                        onChange={(e) =>
-                          updateSettings({ webdavPass: e.target.value })
-                        }
-                        className="flex-1"
-                      />
+                      {(['light', 'dark', 'system'] as const).map((t) => (
+                        <Button
+                          key={t}
+                          variant={theme === t ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTheme(t)}
+                          className="capitalize"
+                        >
+                          {t === 'light' ? '浅色' : t === 'dark' ? '深色' : '跟随系统'}
+                        </Button>
+                      ))}
                     </div>
+                  </section>
+
+                  {/* Refresh interval */}
+                  <section className="space-y-2">
+                    <Label htmlFor="refresh-interval">刷新间隔（分钟）</Label>
                     <Input
-                      placeholder="保存目录 (留空使用 WebDAV 根目录，例如 zrss)"
-                      value={settings.webdavPath}
-                      onChange={(e) => updateSettings({ webdavPath: e.target.value })}
+                      id="refresh-interval"
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={settings.refreshInterval}
+                      onChange={(e) =>
+                        updateSettings({
+                          refreshInterval: Number(e.target.value) || 15,
+                        })
+                      }
                     />
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          const result = await testWebDAVConnection();
-                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
-                        }}
-                      >
-                        <Cloud className="mr-2 h-4 w-4" />
-                        测试连接
+                  </section>
+
+                  {/* Auto mark read */}
+                  <section className="flex items-center justify-between">
+                    <div>
+                      <Label>自动标记为已读</Label>
+                      <p className="text-xs text-muted-foreground">
+                        打开文章时自动标记为已读
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.autoMarkRead}
+                      onCheckedChange={(checked) =>
+                        updateSettings({ autoMarkRead: checked })
+                      }
+                    />
+                  </section>
+
+                  {/* AI summary feature */}
+                  <section className="flex items-center justify-between">
+                    <div>
+                      <Label>AI 摘要功能</Label>
+                      <p className="text-xs text-muted-foreground">
+                        启用后可对文章生成摘要和翻译（需先在 AI 服务中配置供应商）
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.aiEnabled}
+                      onCheckedChange={(checked) =>
+                        updateSettings({ aiEnabled: checked })
+                      }
+                    />
+                  </section>
+
+                  {/* AI auto summarize */}
+                  <section className="flex items-center justify-between">
+                    <div>
+                      <Label>自动 AI 摘要</Label>
+                      <p className="text-xs text-muted-foreground">
+                        打开文章时自动生成摘要，关闭后需手动点击按钮
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.aiAutoSummarize}
+                      onCheckedChange={(checked) =>
+                        updateSettings({ aiAutoSummarize: checked })
+                      }
+                      disabled={!settings.aiEnabled}
+                    />
+                  </section>
+
+                  {/* Max articles per feed */}
+                  <section className="space-y-2">
+                    <Label htmlFor="max-articles">每个订阅最大文章数</Label>
+                    <Input
+                      id="max-articles"
+                      type="number"
+                      min={50}
+                      max={5000}
+                      value={settings.maxArticlesPerFeed}
+                      onChange={(e) =>
+                        updateSettings({
+                          maxArticlesPerFeed: Number(e.target.value) || 500,
+                        })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      星标文章永远不会被删除。
+                    </p>
+                  </section>
+                </>
+              )}
+
+              {activeSection === 'opml' && (
+                <>
+                  <section className="space-y-3">
+                    <Label className="text-base font-semibold">OPML 导入 / 导出</Label>
+                    <p className="text-sm text-muted-foreground">
+                      将订阅导出为 OPML 格式，或从其他阅读器导入订阅。
+                    </p>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={handleExportOPML}>
+                        <Download className="mr-2 h-4 w-4" />
+                        导出 OPML
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={async () => {
-                          const result = await exportToWebDAV();
-                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
-                        }}
+                        onClick={() => fileInputRef.current?.click()}
                       >
                         <Upload className="mr-2 h-4 w-4" />
-                        上传同步
+                        导入 OPML
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          const result = await listWebDAVBackups();
-                          if (result.success) {
-                            setBackupFiles(result.files);
-                            setShowBackupDialog(true);
-                            setStatus({ message: result.message, type: 'success' });
-                          } else {
-                            setStatus({ message: result.message, type: 'error' });
-                          }
-                        }}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        下载同步
-                      </Button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".opml,.xml"
+                        className="hidden"
+                        onChange={handleImportOPML}
+                      />
                     </div>
-                    <Dialog open={showBackupDialog} onOpenChange={setShowBackupDialog}>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>选择备份文件</DialogTitle>
-                          <DialogDescription>
-                            共找到 {backupFiles.length} 个备份，点击导入或右侧删除。
-                          </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="max-h-80">
-                          {backupFiles.length === 0 ? (
-                            <div className="py-6 text-center text-sm text-muted-foreground">
-                              暂无备份文件
-                            </div>
-                          ) : (
-                            <ul className="space-y-1">
-                              {backupFiles.map((file) => (
-                                <li
-                                  key={file}
-                                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
-                                >
-                                  <span className="flex-1 truncate text-sm">{file}</span>
-                                  <div className="flex gap-1">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={async () => {
-                                        const result = await importFromWebDAV(file);
-                                        setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
-                                        if (result.success) {
-                                          await loadFeeds();
-                                          setShowBackupDialog(false);
-                                        }
-                                      }}
-                                    >
-                                      导入
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      className="h-8 w-8 text-red-500 hover:text-red-600"
-                                      disabled={deletingFile === file}
-                                      onClick={async () => {
-                                        if (!confirm(`确定删除备份 ${file}？`)) return;
-                                        setDeletingFile(file);
-                                        const result = await deleteWebDAVBackup(file);
-                                        setDeletingFile('');
-                                        if (result.success) {
-                                          setBackupFiles((prev) => prev.filter((f) => f !== file));
-                                          setStatus({ message: result.message, type: 'success' });
-                                        } else {
-                                          setStatus({ message: result.message, type: 'error' });
-                                        }
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  {status && (
-                    <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
-                  )}
-                </section>
-              </>
-            )}
+                    {status && (
+                      <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
+                    )}
+                  </section>
+                </>
+              )}
 
-            <div className="h-6" />
-          </div>
-        </ScrollArea>
+              {activeSection === 'sync' && (
+                <>
+                  <section className="space-y-3">
+                    <Label className="text-base font-semibold">WebDAV 同步</Label>
+                    <p className="text-sm text-muted-foreground">
+                      通过 WebDAV 同步订阅源（含分组）与扩展设置到云端。WebDAV 自身凭据不会被同步。
+                    </p>
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="WebDAV 链接"
+                        value={settings.webdavUrl}
+                        onChange={(e) => updateSettings({ webdavUrl: e.target.value })}
+                      />
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="用户名"
+                          value={settings.webdavUser}
+                          onChange={(e) =>
+                            updateSettings({ webdavUser: e.target.value })
+                          }
+                          className="flex-1"
+                        />
+                        <Input
+                          placeholder="密码"
+                          type="password"
+                          value={settings.webdavPass}
+                          onChange={(e) =>
+                            updateSettings({ webdavPass: e.target.value })
+                          }
+                          className="flex-1"
+                        />
+                      </div>
+                      <Input
+                        placeholder="保存目录 (留空使用 WebDAV 根目录，例如 zrss)"
+                        value={settings.webdavPath}
+                        onChange={(e) => updateSettings({ webdavPath: e.target.value })}
+                      />
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const result = await testWebDAVConnection();
+                            setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                          }}
+                        >
+                          <Cloud className="mr-2 h-4 w-4" />
+                          测试连接
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const result = await exportToWebDAV();
+                            setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                          }}
+                        >
+                          <Upload className="mr-2 h-4 w-4" />
+                          上传同步
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async () => {
+                            const result = await listWebDAVBackups();
+                            if (result.success) {
+                              setBackupFiles(result.files);
+                              setShowBackupDialog(true);
+                              setStatus({ message: result.message, type: 'success' });
+                            } else {
+                              setStatus({ message: result.message, type: 'error' });
+                            }
+                          }}
+                        >
+                          <Download className="mr-2 h-4 w-4" />
+                          下载同步
+                        </Button>
+                      </div>
+                      <Dialog open={showBackupDialog} onOpenChange={setShowBackupDialog}>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>选择备份文件</DialogTitle>
+                            <DialogDescription>
+                              共找到 {backupFiles.length} 个备份，点击导入或右侧删除。
+                            </DialogDescription>
+                          </DialogHeader>
+                          <ScrollArea className="max-h-80">
+                            {backupFiles.length === 0 ? (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                暂无备份文件
+                              </div>
+                            ) : (
+                              <ul className="space-y-1">
+                                {backupFiles.map((file) => (
+                                  <li
+                                    key={file}
+                                    className="flex items-center justify-between gap-2 rounded-md border px-3 py-2"
+                                  >
+                                    <span className="flex-1 truncate text-sm">{file}</span>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={async () => {
+                                          const result = await importFromWebDAV(file);
+                                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                                          if (result.success) {
+                                            await loadFeeds();
+                                            setShowBackupDialog(false);
+                                          }
+                                        }}
+                                      >
+                                        导入
+                                      </Button>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                                        disabled={deletingFile === file}
+                                        onClick={async () => {
+                                          if (!confirm(`确定删除备份 ${file}？`)) return;
+                                          setDeletingFile(file);
+                                          const result = await deleteWebDAVBackup(file);
+                                          setDeletingFile('');
+                                          if (result.success) {
+                                            setBackupFiles((prev) => prev.filter((f) => f !== file));
+                                            setStatus({ message: result.message, type: 'success' });
+                                          } else {
+                                            setStatus({ message: result.message, type: 'error' });
+                                          }
+                                        }}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </ScrollArea>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
+                    {status && (
+                      <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
+                    )}
+                  </section>
+                </>
+              )}
+
+              <div className="h-6" />
+            </div>
+          </ScrollArea>
+        )}
       </div>
     </div>
   );

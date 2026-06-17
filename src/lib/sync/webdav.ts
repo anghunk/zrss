@@ -1,6 +1,6 @@
 import { db } from '../db';
-import { getSettings } from '../db';
-import type { Feed, Folder } from '@/types';
+import { getSettings, saveSettings } from '../db';
+import type { Feed, Folder, Settings } from '@/types';
 
 interface WebDAVConfig {
   url: string;
@@ -38,11 +38,21 @@ export async function exportToWebDAV(): Promise<{ success: boolean; message: str
     const feeds = await db.feeds.toArray();
     const folders = await db.folders.toArray();
 
+    // 同步扩展设置时剔除 WebDAV 自身凭据，避免覆盖目标设备配置
+    const {
+      webdavUrl: _u,
+      webdavUser: _us,
+      webdavPass: _p,
+      webdavPath: _pa,
+      ...syncableSettings
+    } = settings;
+
     const exportData = {
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       feeds,
       folders,
+      settings: syncableSettings,
     };
 
     const json = JSON.stringify(exportData, null, 2);
@@ -98,7 +108,7 @@ export async function exportToWebDAV(): Promise<{ success: boolean; message: str
       throw new Error(`WebDAV 上传失败: ${response.status} ${response.statusText}`);
     }
 
-    return { success: true, message: `已导出 ${feeds.length} 个订阅和 ${folders.length} 个分组到 ${fileName}` };
+    return { success: true, message: `已导出 ${feeds.length} 个订阅、${folders.length} 个分组和扩展设置到 ${fileName}` };
   } catch (err) {
     return {
       success: false,
@@ -233,9 +243,27 @@ export async function importFromWebDAV(fileName: string): Promise<{ success: boo
       }
     }
 
+    // 导入扩展设置（version 2 起包含）
+    let settingsImported = false;
+    if (importData.settings && typeof importData.settings === 'object') {
+      // 再次确保不包含 WebDAV 凭据
+      const {
+        webdavUrl: _u,
+        webdavUser: _us,
+        webdavPass: _p,
+        webdavPath: _pa,
+        ...rest
+      } = importData.settings as Record<string, unknown>;
+      await saveSettings(rest as Partial<Settings>);
+      settingsImported = true;
+    }
+
+    const parts: string[] = [`${addedCount} 个订阅 (跳过 ${feedsToImport.length - addedCount} 个重复)`];
+    if (settingsImported) parts.push('扩展设置');
+
     return {
       success: true,
-      message: `从 ${fileName} 导入 ${addedCount} 个订阅 (跳过 ${feedsToImport.length - addedCount} 个重复)`,
+      message: `从 ${fileName} 导入${parts.join('、')}`,
     };
   } catch (err) {
     return {

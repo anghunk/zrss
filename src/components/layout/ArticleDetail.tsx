@@ -1,13 +1,38 @@
+import { useState, useEffect, useMemo } from 'react';
 import { useArticleStore } from '@/stores/articleStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/utils/date';
-import { Star, ExternalLink, CheckCircle, Circle } from 'lucide-react';
+import { Star, ExternalLink, CheckCircle, Circle, Languages } from 'lucide-react';
+import { AIPanel } from '@/components/ai/AIPanel';
+import { detectLanguage, extractTextForDetection } from '@/lib/ai/detect-language';
 
 export function ArticleDetail() {
   const { selectedArticle, toggleStarred, markAsRead, markAsUnread } = useArticleStore();
   const { feeds } = useFeedStore();
+
+  const [translation, setTranslation] = useState<string | null>(null);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [lang, setLang] = useState<'zh' | 'ja' | 'ko' | 'other'>('other');
+
+  // 文章切换时重置翻译状态
+  useEffect(() => {
+    setTranslation(null);
+    setShowTranslation(false);
+    if (selectedArticle) {
+      const text = extractTextForDetection(selectedArticle.content);
+      setLang(detectLanguage(text));
+    }
+  }, [selectedArticle?.id]);
+
+  const isForeign = lang !== 'zh';
+  const hasTranslation = translation !== null;
+
+  const displayContent = useMemo(() => {
+    if (!selectedArticle) return '';
+    return showTranslation && translation ? translation : selectedArticle.content;
+  }, [selectedArticle, showTranslation, translation]);
 
   if (!selectedArticle) {
     return (
@@ -35,6 +60,21 @@ export function ArticleDetail() {
           <span>{formatDate(article.publishedAt)}</span>
         </div>
         <div className="flex items-center gap-1">
+          {/* 翻译切换按钮 (仅外文且有翻译时显示) */}
+          {isForeign && hasTranslation && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                'h-8 w-8',
+                showTranslation && 'bg-accent text-accent-foreground'
+              )}
+              onClick={() => setShowTranslation(!showTranslation)}
+              title={showTranslation ? '显示原文' : '显示译文'}
+            >
+              <Languages className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -80,6 +120,17 @@ export function ArticleDetail() {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-6 py-4 select-text">
+        {/* AI 面板 */}
+        <AIPanel
+          article={article}
+          onTranslate={(html) => {
+            setTranslation(html);
+            setShowTranslation(true);
+          }}
+          translation={translation}
+          setTranslation={setTranslation}
+        />
+
         <article className="prose prose-sm dark:prose-invert max-w-none">
           <h1 className="text-xl font-bold leading-tight mb-2">{article.title}</h1>
           {article.author && (
@@ -88,7 +139,7 @@ export function ArticleDetail() {
             </p>
           )}
           <div
-            dangerouslySetInnerHTML={{ __html: article.content }}
+            dangerouslySetInnerHTML={{ __html: displayContent }}
           />
         </article>
       </div>
