@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Rss, Loader2, Plus, ExternalLink } from 'lucide-react';
+import { Rss, Loader2, Plus, ExternalLink, Check } from 'lucide-react';
 import { detectFeedsInTab, type DetectedFeed } from '@/lib/rss-detector';
+import { db } from '@/lib/db';
 
 type Status = 'loading' | 'found' | 'empty' | 'error';
 
 export function PopupApp() {
   const [status, setStatus] = useState<Status>('loading');
   const [feeds, setFeeds] = useState<DetectedFeed[]>([]);
+  const [subscribedUrls, setSubscribedUrls] = useState<Set<string>>(new Set());
   const [errorMsg, setErrorMsg] = useState('');
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
@@ -28,9 +30,17 @@ export function PopupApp() {
       const detected = await detectFeedsInTab(tab.id);
       if (detected.length > 0) {
         setFeeds(detected);
+        // 检查哪些已订阅
+        const urls = new Set<string>();
+        for (const feed of detected) {
+          const existing = await db.feeds.where('url').equals(feed.url).first();
+          if (existing) urls.add(feed.url);
+        }
+        setSubscribedUrls(urls);
         setStatus('found');
       } else {
         setFeeds([]);
+        setSubscribedUrls(new Set());
         setStatus('empty');
       }
     } catch (err) {
@@ -94,6 +104,7 @@ export function PopupApp() {
         <div className="space-y-1.5 max-h-64 overflow-y-auto mb-3">
           {feeds.map((feed) => {
             const isBusy = subscribing === feed.url;
+            const isSubscribed = subscribedUrls.has(feed.url);
             const typeLabel =
               feed.type === 'rss' ? 'RSS' :
               feed.type === 'atom' ? 'Atom' :
@@ -115,18 +126,25 @@ export function PopupApp() {
                 <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground">
                   {typeLabel}
                 </span>
-                <button
-                  className="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
-                  onClick={() => handleSubscribe(feed)}
-                  disabled={!!subscribing}
-                >
-                  {isBusy ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Plus className="h-3 w-3" />
-                  )}
-                  订阅
-                </button>
+                {isSubscribed ? (
+                  <span className="shrink-0 inline-flex items-center gap-1 rounded-md bg-green-100 px-2 py-1 text-[11px] font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    <Check className="h-3 w-3" />
+                    已订阅
+                  </span>
+                ) : (
+                  <button
+                    className="shrink-0 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-[11px] font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+                    onClick={() => handleSubscribe(feed)}
+                    disabled={!!subscribing}
+                  >
+                    {isBusy ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Plus className="h-3 w-3" />
+                    )}
+                    订阅
+                  </button>
+                )}
               </div>
             );
           })}

@@ -142,7 +142,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   srcDir: 'src',
   manifest: {
-    name: 'ZRSS - RSS Reader',
+    name: 'ZRSS',
     permissions: ['storage', 'alarms', 'tabs'],
     host_permissions: ['<all_urls>'],
   },

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFeedStore } from '@/stores/feedStore';
 import { useUIStore } from '@/stores/uiStore';
 import {
@@ -19,15 +19,17 @@ export function AddFeedDialog() {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
 
-  // 当 prefillUrl 变化时，将其作为初始 URL
-  // 使用 key 技巧：打开时读取 prefillUrl 一次
-  // 这里通过监听 addFeedOpen 变化来同步
+  // 当对话框通过 store 被程序化打开时（如从 popup 跳转过来），
+  // Radix Dialog 的 onOpenChange 不会触发，需要用 useEffect 同步 prefillUrl
+  useEffect(() => {
+    if (addFeedOpen) {
+      setUrl(prefillUrl || '');
+    }
+  }, [addFeedOpen, prefillUrl]);
+
   const handleOpenChange = (open: boolean) => {
     setAddFeedOpen(open);
-    if (open) {
-      // 打开时用预填 URL 初始化输入框
-      setUrl(prefillUrl || '');
-    } else {
+    if (!open) {
       setUrl('');
       setError('');
       setPrefillUrl('');

@@ -4,7 +4,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   srcDir: 'src',
   manifest: {
-    name: 'ZRSS - RSS Reader',
+    name: 'ZRSS',
     description: 'A modern RSS reader with clean interface',
     permissions: ['storage', 'alarms', 'tabs', 'scripting', 'activeTab'],
     host_permissions: ['<all_urls>'],
