@@ -3,6 +3,7 @@ import { Rss, Loader2, Plus, ExternalLink, Check, Trash2 } from 'lucide-react';
 import logoImg from '@/assets/logo.png';
 import { detectFeedsInTab, type DetectedFeed } from '@/lib/rss-detector';
 import { db } from '@/lib/db';
+import { deleteFeed } from '@/lib/feed-fetcher';
 
 type Status = 'loading' | 'found' | 'empty' | 'error';
 
@@ -28,7 +29,7 @@ export function PopupApp() {
         return;
       }
 
-      const detected = await detectFeedsInTab(tab.id);
+      const detected = await detectFeedsInTab(tab.id, tab.url);
       if (detected.length > 0) {
         setFeeds(detected);
         // 检查哪些已订阅
@@ -51,35 +52,29 @@ export function PopupApp() {
     }
   }
 
-  // 点击订阅：跳转到扩展阅读器，打开添加订阅对话框并预填 URL
+  /**
+   * 跳转到扩展阅读器，打开添加订阅对话框并预填 URL。
+   */
   async function handleSubscribe(feed: DetectedFeed) {
     setSubscribing(feed.url);
     try {
       const addParam = encodeURIComponent(feed.url);
-      const targetUrl = `${browser.runtime.getURL('reader.html')}#/subscriptions?add=${addParam}`;
-      // 优先在当前窗口打开，避免每次都新建 tab
-      const readerOrigin = browser.runtime.getURL('reader.html');
-      const existing = await browser.tabs.query({ url: `${readerOrigin}*` });
-      if (existing.length > 0) {
-        await browser.tabs.update(existing[0].id!, { url: targetUrl, active: true });
-        if (existing[0].windowId !== undefined) {
-          await browser.windows.update(existing[0].windowId, { focused: true });
-        }
-      } else {
-        await browser.tabs.create({ url: targetUrl });
-      }
+      const targetUrl = `${browser.runtime.getURL('/reader.html')}#/subscriptions?add=${addParam}`;
+      await browser.tabs.create({ url: targetUrl });
       window.close();
     } finally {
       setSubscribing(null);
     }
   }
 
-  // 取消订阅：从数据库中删除该 feed
+  /**
+   * 取消订阅并级联删除该订阅源下的文章。
+   */
   async function handleUnsubscribe(feed: DetectedFeed) {
     try {
       const existing = await db.feeds.where('url').equals(feed.url).first();
       if (existing) {
-        await db.feeds.delete(existing.id);
+        await deleteFeed(existing.id);
         // 更新已订阅列表
         setSubscribedUrls((prev) => {
           const next = new Set(prev);
@@ -92,9 +87,11 @@ export function PopupApp() {
     }
   }
 
-  // 打开阅读器（不预填）
+  /**
+   * 打开阅读器首页。
+   */
   async function openReader() {
-    const readerUrl = browser.runtime.getURL('reader.html');
+    const readerUrl = browser.runtime.getURL('/reader.html');
     await browser.tabs.create({ url: readerUrl });
     window.close();
   }

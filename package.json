@@ -1,7 +1,7 @@
 {
   "name": "zrss",
   "description": "A modern RSS reader browser extension",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -13,6 +13,7 @@
     "prepare": "wxt prepare"
   },
   "dependencies": {
+    "@lobehub/icons": "^5.10.0",
     "@radix-ui/react-dialog": "^1.1.6",
     "@radix-ui/react-dropdown-menu": "^2.1.6",
     "@radix-ui/react-label": "^2.1.2",

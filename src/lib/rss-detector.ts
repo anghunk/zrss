@@ -105,7 +105,13 @@ async function probeCommonPaths(pageUrl: string): Promise<DetectedFeed[]> {
   return results;
 }
 
-export async function detectFeedsInTab(tabId: number): Promise<DetectedFeed[]> {
+/**
+ * 在指定标签页检测页面声明的订阅源，并用当前页面地址探测常见 feed 路径。
+ */
+export async function detectFeedsInTab(
+  tabId: number,
+  pageUrl?: string
+): Promise<DetectedFeed[]> {
   // 通过 content script 在页面内扫描 <link rel="alternate">
   let fromPage: DetectedFeed[] = [];
   try {
@@ -128,15 +134,11 @@ export async function detectFeedsInTab(tabId: number): Promise<DetectedFeed[]> {
   }
 
   // 兜底：探测常见路径
-  try {
-    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    const tab = tabs.find((t) => t.id === tabId);
-    if (tab?.url) {
-      const probed = await probeCommonPaths(tab.url);
-      if (probed.length > 0) return dedupe(probed);
+  if (pageUrl) {
+    const probed = await probeCommonPaths(pageUrl);
+    if (probed.length > 0) {
+      return dedupe(probed);
     }
-  } catch {
-    // ignore
   }
 
   return [];

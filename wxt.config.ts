@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'ZRSS',
     description: 'A modern RSS reader with clean interface',
-    permissions: ['storage', 'alarms', 'tabs', 'scripting', 'activeTab'],
+    permissions: ['alarms', 'scripting', 'activeTab'],
     host_permissions: ['<all_urls>'],
     icons: {
       '16': '/icon-16.png',
