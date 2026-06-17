@@ -35,14 +35,6 @@ npm run build:firefox
 npm run zip:firefox
 ```
 
-## 权限
-
-- `alarms`: 定时刷新订阅源
-- `activeTab` + `scripting`: 在用户打开弹窗时检测当前页面的 RSS 链接
-- `<all_urls>`: 请求用户订阅的 Feed、WebDAV 地址和自定义 AI 接口
-
-已避免使用未使用的 `storage` 权限，并移除长期 `tabs` 权限。
-
 ## 技术栈
 
 - WXT
@@ -51,6 +43,6 @@ npm run zip:firefox
 - Zustand
 - Dexie.js
 
-## License
+## LICENSE
 
-MIT
+[Apache-2.0](./LICENSE)
