@@ -1,6 +1,8 @@
 # ZRSS
 
-界面简洁的现代 RSS 阅读器。
+界面简洁的现代 RSS 阅读器（浏览器扩展）。
+
+<img width="1508" height="992" alt="image" src="https://github.com/user-attachments/assets/81d708b5-6931-4b07-8174-3c0b0b44dc56" />
 
 ## 功能
 
