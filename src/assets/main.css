@@ -64,6 +64,11 @@
 .prose {
   font-size: 0.9375rem;
   line-height: 1.7;
+  color: #525252;
+}
+
+.dark .prose {
+  color: #d4d4d8;
 }
 
 .prose h1,
@@ -75,10 +80,17 @@
   font-weight: 600;
   margin-top: 1.5em;
   margin-bottom: 0.5em;
+  color: hsl(var(--foreground));
 }
 
 .prose p {
   margin-bottom: 1em;
+}
+
+.prose p,
+.prose li,
+.prose td {
+  color: inherit;
 }
 
 .prose a {

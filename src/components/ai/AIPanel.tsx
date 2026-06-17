@@ -247,11 +247,67 @@ export function AIPanel({
 
   return (
     <div className="mb-4 rounded-lg border bg-muted/30 p-3">
-      <div className="flex items-center justify-between mb-2">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">AI 分析</span>
           <span className="text-xs text-muted-foreground">({aiConfig.name})</span>
+        </div>
+
+        <div className="ml-auto flex flex-wrap justify-end gap-2">
+          {/* 摘要按钮 */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => generateSummary(true)}
+            disabled={summaryLoading || translateLoading}
+            className="gap-1"
+          >
+            {summaryLoading ? (
+              <>
+                <RefreshCw className="h-3 w-3 animate-spin" />
+                生成中...
+              </>
+            ) : summary ? (
+              <>
+                <RotateCcw className="h-3 w-3" />
+                重新摘要
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3 w-3" />
+                生成摘要
+              </>
+            )}
+          </Button>
+
+          {/* 翻译按钮（仅外文显示） */}
+          {isForeign && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={translateArticle}
+              disabled={translateLoading || summaryLoading}
+              className="gap-1"
+            >
+              {translateLoading ? (
+                <>
+                  <RefreshCw className="h-3 w-3 animate-spin" />
+                  翻译中...
+                </>
+              ) : translation ? (
+                <>
+                  <Languages className="h-3 w-3" />
+                  已翻译
+                </>
+              ) : (
+                <>
+                  <Languages className="h-3 w-3" />
+                  翻译全文
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -260,62 +316,6 @@ export function AIPanel({
           {error}
         </div>
       )}
-
-      <div className="flex flex-wrap gap-2">
-        {/* 摘要按钮 */}
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => generateSummary(true)}
-          disabled={summaryLoading || translateLoading}
-          className="gap-1"
-        >
-          {summaryLoading ? (
-            <>
-              <RefreshCw className="h-3 w-3 animate-spin" />
-              生成中...
-            </>
-          ) : summary ? (
-            <>
-              <RotateCcw className="h-3 w-3" />
-              重新摘要
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-3 w-3" />
-              生成摘要
-            </>
-          )}
-        </Button>
-
-        {/* 翻译按钮（仅外文显示） */}
-        {isForeign && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={translateArticle}
-            disabled={translateLoading || summaryLoading}
-            className="gap-1"
-          >
-            {translateLoading ? (
-              <>
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                翻译中...
-              </>
-            ) : translation ? (
-              <>
-                <Languages className="h-3 w-3" />
-                已翻译
-              </>
-            ) : (
-              <>
-                <Languages className="h-3 w-3" />
-                翻译全文
-              </>
-            )}
-          </Button>
-        )}
-      </div>
 
       {/* 摘要显示 */}
       {summaryRaw && !summary && (
