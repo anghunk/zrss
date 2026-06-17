@@ -1,6 +1,6 @@
 # ZRSS
 
-一个简洁的浏览器扩展 RSS 阅读器，基于 WXT、React 和 IndexedDB 构建。
+界面简洁的现代 RSS 阅读器。
 
 ## 功能
 
