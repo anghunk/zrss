@@ -57,7 +57,7 @@ export async function exportToWebDAV(): Promise<{ success: boolean; message: str
 
     const json = JSON.stringify(exportData, null, 2);
     const now = new Date();
-    const timestamp = now.toISOString().replace(/[-:T]/g, '').slice(0, 14);
+    const timestamp = now.toISOString().replace(/\D/g, '').slice(0, 14);
     const fileName = `zrss-backup-${timestamp}.json`;
     const baseUrl = buildBasePath(config);
     const filePath = `${baseUrl}/${fileName}`;

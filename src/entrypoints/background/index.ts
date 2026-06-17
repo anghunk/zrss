@@ -4,7 +4,9 @@ import { getSettings } from '@/lib/db';
 export default defineBackground(() => {
   const ALARM_NAME = 'zrss-refresh';
 
-  // 设置定时器
+  /**
+   * 根据当前设置重建 RSS 刷新定时器。
+   */
   async function setupAlarm() {
     const settings = await getSettings();
     const intervalMinutes = settings.refreshInterval || 15;
@@ -17,7 +19,9 @@ export default defineBackground(() => {
     console.log(`[ZRSS] Alarm set: refresh every ${intervalMinutes} minutes`);
   }
 
-  // 执行刷新
+  /**
+   * 抓取所有订阅源并通知已打开的阅读器页面刷新数据。
+   */
   async function doRefresh() {
     try {
       console.log('[ZRSS] Starting feed refresh...');
@@ -30,7 +34,7 @@ export default defineBackground(() => {
         (errors.length > 0 ? `, ${errors.length} errors` : '')
       );
 
-      // 通知 newtab 页面更新
+      // 通知 reader 页面更新
       try {
         await browser.runtime.sendMessage({
           type: 'FEEDS_UPDATED',
@@ -55,6 +59,10 @@ export default defineBackground(() => {
   browser.runtime.onMessage.addListener((message) => {
     if (message.type === 'FETCH_FEEDS') {
       doRefresh();
+      return true;
+    }
+    if (message.type === 'SETTINGS_UPDATED') {
+      setupAlarm();
       return true;
     }
   });

@@ -80,6 +80,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   updateSettings: async (updates) => {
     const settings = await saveSettings(updates);
     set({ settings });
+    if ('refreshInterval' in updates) {
+      try {
+        await browser.runtime.sendMessage({
+          type: 'SETTINGS_UPDATED',
+          payload: { refreshInterval: settings.refreshInterval },
+        });
+      } catch {
+        // 后台 Service Worker 暂未激活时忽略，下一次启动会读取最新设置。
+      }
+    }
   },
 
   setAddFeedOpen: (open) => set({ addFeedOpen: open }),

@@ -7,6 +7,7 @@ import { formatDate } from '@/utils/date';
 import { Star, ExternalLink, CheckCircle, Circle, Languages } from 'lucide-react';
 import { AIPanel } from '@/components/ai/AIPanel';
 import { detectLanguage, extractTextForDetection } from '@/lib/ai/detect-language';
+import { sanitizeHtml } from '@/utils/sanitize';
 
 export function ArticleDetail() {
   const { selectedArticle, toggleStarred, markAsRead, markAsUnread } = useArticleStore();
@@ -31,7 +32,9 @@ export function ArticleDetail() {
 
   const displayContent = useMemo(() => {
     if (!selectedArticle) return '';
-    return showTranslation && translation ? translation : selectedArticle.content;
+    return sanitizeHtml(
+      showTranslation && translation ? translation : selectedArticle.content
+    );
   }, [selectedArticle, showTranslation, translation]);
 
   if (!selectedArticle) {

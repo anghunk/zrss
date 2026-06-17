@@ -58,7 +58,7 @@ export interface Settings {
     name: string;
     baseUrl: string;
     apiKey: string;
-    apiFormat: 'openai' | 'anthropic';
+    apiFormat: 'openai' | 'anthropic' | 'ollama';
     models: string[];
     currentModel: string;
     modelsUpdatedAt?: number;
@@ -92,5 +92,6 @@ export interface ParsedFeed {
 // 消息类型
 export type MessageType =
   | { type: 'FETCH_FEEDS' }
+  | { type: 'SETTINGS_UPDATED'; payload: { refreshInterval: number } }
   | { type: 'FEEDS_UPDATED'; payload: { feedId: string; newArticles: number }[] }
   | { type: 'FETCH_ERROR'; payload: { feedId: string; error: string } };

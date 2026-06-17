@@ -2,17 +2,24 @@ import { useState, useEffect } from 'react';
 import {
   Plus,
   Trash2,
-  Check,
   RefreshCw,
   Eye,
   EyeOff,
   Loader2,
   ChevronRight,
 } from 'lucide-react';
+import {
+  AlibabaCloud,
+  Anthropic,
+  DeepSeek,
+  Ollama,
+  OpenAI,
+} from '@lobehub/icons';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
 import {
   Dialog,
   DialogContent,
@@ -24,16 +31,90 @@ import { getSettings, saveSettings } from '@/lib/db';
 import { fetchModels, generateProviderId } from '@/lib/ai/models';
 import { chatSimple, AIError } from '@/lib/ai/client';
 import { AI_PROVIDER_PRESETS } from '@/types/ai';
-import type { AIApiFormat } from '@/types/ai';
+import type { AIApiFormat, AIProviderPreset } from '@/types/ai';
 import type { Settings } from '@/types';
 
 type ProviderConfig = Settings['aiProviders'][string];
+
+interface ProviderNameInputProps {
+  provider: ProviderConfig;
+  onSave: (name: string) => Promise<void>;
+}
+
+/**
+ * 供应商名称输入框，使用本地草稿避免中文输入法组词时被异步保存打断。
+ */
+function ProviderNameInput({ provider, onSave }: ProviderNameInputProps) {
+  const [draftName, setDraftName] = useState(provider.name);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setDraftName(provider.name);
+  }, [provider.id, provider.name]);
+
+  /**
+   * 保存非空名称，空名称会回退到已保存值。
+   */
+  const commitName = async () => {
+    const nextName = draftName.trim();
+    if (!nextName) {
+      setDraftName(provider.name);
+      return;
+    }
+    if (nextName === provider.name || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      await onSave(nextName);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <Input
+      placeholder="供应商名称"
+      value={draftName}
+      onChange={(e) => setDraftName(e.target.value)}
+      onBlur={commitName}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+          e.currentTarget.blur();
+        }
+      }}
+      disabled={isSaving}
+    />
+  );
+}
 
 interface AddProviderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (provider: ProviderConfig) => void;
   existingProviders: Record<string, ProviderConfig>;
+}
+
+/**
+ * 根据预设类型渲染供应商图标。
+ */
+function PresetIcon({ preset }: { preset: AIProviderPreset }) {
+  const iconProps = { size: 24 };
+
+  switch (preset.icon) {
+    case 'openai':
+      return <OpenAI.Avatar {...iconProps} />;
+    case 'deepseek':
+      return <DeepSeek.Avatar {...iconProps} />;
+    case 'aliyun':
+      return <AlibabaCloud.Avatar {...iconProps} />;
+    case 'ollama':
+    case 'ollama-cloud':
+      return <Ollama.Avatar {...iconProps} />;
+    case 'anthropic':
+      return <Anthropic.Avatar {...iconProps} />;
+    default:
+      return <OpenAI.Avatar {...iconProps} />;
+  }
 }
 
 function AddProviderDialog({
@@ -91,7 +172,7 @@ function AddProviderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>添加 AI 供应商</DialogTitle>
           <DialogDescription>
@@ -121,27 +202,34 @@ function AddProviderDialog({
           {mode === 'preset' ? (
             <div className="space-y-2">
               <Label>选择供应商</Label>
-              <ScrollArea className="h-[200px] rounded-md border p-2">
-                <div className="space-y-1">
+              <ScrollArea className="h-[360px]">
+                <div className="grid grid-cols-3 gap-2 pr-3">
                   {AI_PROVIDER_PRESETS.map((preset) => (
                     <button
                       key={preset.id}
-                      className={`w-full text-left p-2 rounded-md transition-colors ${
+                      className={`flex min-h-[84px] flex-col items-start justify-between rounded-md border p-3 text-left transition-colors ${
                         selectedPresetId === preset.id
-                          ? 'bg-primary/10 border border-primary'
-                          : 'hover:bg-muted'
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-input hover:bg-muted'
                       }`}
                       onClick={() => setSelectedPresetId(preset.id)}
+                      title={preset.description}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{preset.name}</span>
-                        {selectedPresetId === preset.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                          <PresetIcon preset={preset} />
+                        </span>
+                        <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          {preset.apiFormat === 'ollama'
+                            ? 'Ollama'
+                            : preset.apiFormat === 'anthropic'
+                              ? 'Claude'
+                              : 'OpenAI'}
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {preset.description}
-                      </p>
+                      <span className="mt-3 text-sm font-medium text-foreground">
+                        {preset.name}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -174,6 +262,7 @@ function AddProviderDialog({
                 >
                   <option value="openai">OpenAI 兼容</option>
                   <option value="anthropic">Anthropic</option>
+                  <option value="ollama">Ollama 原生</option>
                 </select>
               </div>
             </div>
@@ -279,10 +368,14 @@ export function AIModelManager() {
     }
   };
 
-  // 激活供应商
-  const handleActivateProvider = async (id: string) => {
+  /**
+   * 通过列表右侧开关切换当前启用的供应商。
+   */
+  const handleToggleActiveProvider = async (id: string, checked: boolean) => {
     setSelectedProviderId(id);
-    const newSettings = await saveSettings({ activeProviderId: id });
+    const newSettings = await saveSettings({
+      activeProviderId: checked ? id : null,
+    });
     setSettings(newSettings);
   };
 
@@ -392,39 +485,30 @@ export function AIModelManager() {
                 return (
                   <div
                     key={id}
-                    className={`flex items-center gap-1 p-2 rounded-md cursor-pointer transition-colors ${
+                    className={`flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-colors ${
                       isSelected ? 'bg-accent' : 'hover:bg-muted'
                     }`}
                     onClick={() => setSelectedProviderId(id)}
                   >
-                    <button
-                      className={`flex-1 text-left text-sm truncate ${
+                    <span
+                      className={`min-w-0 flex-1 truncate text-sm ${
                         isActive ? 'font-medium' : ''
                       }`}
+                      title={p.name}
+                    >
+                      {p.name}
+                    </span>
+                    <Switch
+                      checked={isActive}
+                      aria-label={isActive ? '停用此供应商' : '启用此供应商'}
+                      className="shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleActivateProvider(id);
                       }}
-                      title={isActive ? '当前使用中' : '点击启用'}
-                    >
-                      <div className="flex items-center gap-1">
-                        {isActive && <Check className="h-3 w-3 text-green-500 shrink-0" />}
-                        <span className="truncate">{p.name}</span>
-                      </div>
-                    </button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-5 w-5 shrink-0 text-muted-foreground hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`确定删除供应商 "${p.name}"？`)) {
-                          handleDeleteProvider(id);
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
+                      onCheckedChange={(checked) =>
+                        handleToggleActiveProvider(id, checked)
+                      }
+                    />
                   </div>
                 );
               })
@@ -438,25 +522,38 @@ export function AIModelManager() {
         {selectedProvider ? (
           <div className="space-y-4 max-w-md">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium">供应商配置</h3>
-              {settings.activeProviderId !== selectedProvider.id && (
+              <div>
+                <h3 className="font-medium">供应商配置</h3>
+                {settings.activeProviderId === selectedProvider.id && (
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    当前使用中
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
+                  variant="outline"
                   size="sm"
-                  onClick={() => handleActivateProvider(selectedProvider.id)}
+                  className="gap-1 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (confirm(`确定删除供应商 "${selectedProvider.name}"？`)) {
+                      handleDeleteProvider(selectedProvider.id);
+                    }
+                  }}
                 >
-                  启用此供应商
+                  <Trash2 className="h-4 w-4" />
+                  删除
                 </Button>
-              )}
+              </div>
             </div>
 
             {/* 名称 */}
             <div className="space-y-2">
               <Label>名称</Label>
-              <Input
-                placeholder="供应商名称"
-                value={selectedProvider.name}
-                onChange={(e) =>
-                  updateProvider(selectedProvider.id, { name: e.target.value })
+              <ProviderNameInput
+                provider={selectedProvider}
+                onSave={(name) =>
+                  updateProvider(selectedProvider.id, { name })
                 }
               />
             </div>
@@ -514,6 +611,7 @@ export function AIModelManager() {
               >
                 <option value="openai">OpenAI 兼容</option>
                 <option value="anthropic">Anthropic</option>
+                <option value="ollama">Ollama 原生</option>
               </select>
             </div>
 

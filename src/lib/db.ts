@@ -72,7 +72,7 @@ function migrateSettings(raw: Record<string, unknown>): Partial<Settings> {
       name: 'Legacy',
       baseUrl: (raw.aiBaseUrl as string) || '',
       apiKey: (raw.aiApiKey as string) || '',
-      apiFormat: (raw.aiApiFormat as 'openai' | 'anthropic') || 'openai',
+      apiFormat: (raw.aiApiFormat as 'openai' | 'anthropic' | 'ollama') || 'openai',
       models: [],
       currentModel: (raw.aiModel as string) || '',
     };
@@ -94,7 +94,7 @@ function migrateSettings(raw: Record<string, unknown>): Partial<Settings> {
       baseUrl: string;
       apiKey: string;
       model: string;
-      apiFormat: 'openai' | 'anthropic';
+      apiFormat: 'openai' | 'anthropic' | 'ollama';
     }>;
     const oldProvider = raw.aiProvider as string;
 

@@ -201,6 +201,123 @@ async function parseAnthropicStream(
   return fullText;
 }
 
+// ==================== Ollama 原生格式 ====================
+
+async function chatStreamOllama(
+  messages: { role: string; content: string }[],
+  config: AIProviderConfig,
+  onChunk: (text: string) => void,
+  signal?: AbortSignal
+): Promise<string> {
+  const baseUrl = config.baseUrl.replace(/\/+$/, '');
+  const url = `${baseUrl}/chat`;
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: buildOllamaHeaders(config),
+      body: JSON.stringify({
+        model: config.currentModel,
+        messages,
+        stream: true,
+      }),
+      signal,
+    });
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new AIError('已取消', 'aborted');
+    }
+    throw new AIError(`网络请求失败: ${(err as Error).message}`, 'network');
+  }
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  return await parseOllamaStream(response, onChunk);
+}
+
+async function parseOllamaStream(
+  response: Response,
+  onChunk: (text: string) => void
+): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new AIError('响应体为空', 'server');
+  }
+
+  const decoder = new TextDecoder();
+  let fullText = '';
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          const json = JSON.parse(trimmed);
+          const content = json.message?.content;
+          if (content) {
+            fullText += content;
+            onChunk(content);
+          }
+        } catch {
+          // 忽略无法解析的行
+        }
+      }
+    }
+  } catch (err: unknown) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new AIError('已取消', 'aborted');
+    }
+    throw new AIError(`读取响应失败: ${(err as Error).message}`, 'network');
+  }
+
+  return fullText;
+}
+
+async function chatSimpleOllama(
+  messages: { role: string; content: string }[],
+  config: AIProviderConfig
+): Promise<string> {
+  const baseUrl = config.baseUrl.replace(/\/+$/, '');
+  const url = `${baseUrl}/chat`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: buildOllamaHeaders(config),
+    body: JSON.stringify({
+      model: config.currentModel,
+      messages,
+      stream: false,
+    }),
+  });
+
+  if (!response.ok) {
+    await handleErrorResponse(response);
+  }
+
+  const json = await response.json();
+  return json.message?.content || '';
+}
+
+function buildOllamaHeaders(config: AIProviderConfig): HeadersInit {
+  return {
+    'Content-Type': 'application/json',
+    ...(config.apiKey ? { Authorization: `Bearer ${config.apiKey}` } : {}),
+  };
+}
+
 // ==================== 通用 ====================
 
 async function handleErrorResponse(response: Response): Promise<never> {
@@ -225,7 +342,7 @@ async function handleErrorResponse(response: Response): Promise<never> {
 }
 
 /**
- * 流式调用 AI API（自动适配 OpenAI / Anthropic 格式）
+ * 流式调用 AI API（自动适配 OpenAI / Anthropic / Ollama 格式）
  */
 export async function chatStream(
   messages: { role: string; content: string }[],
@@ -240,6 +357,9 @@ export async function chatStream(
 
   if (config.apiFormat === 'anthropic') {
     return chatStreamAnthropic(messages, config, onChunk, signal);
+  }
+  if (config.apiFormat === 'ollama') {
+    return chatStreamOllama(messages, config, onChunk, signal);
   }
   return chatStreamOpenAI(messages, config, onChunk, signal);
 }
@@ -257,6 +377,9 @@ export async function chatSimple(
 
   if (config.apiFormat === 'anthropic') {
     return chatSimpleAnthropic(messages, config);
+  }
+  if (config.apiFormat === 'ollama') {
+    return chatSimpleOllama(messages, config);
   }
   return chatSimpleOpenAI(messages, config);
 }

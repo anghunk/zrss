@@ -1,7 +1,7 @@
 // AI 相关类型定义
 
 // AI API 格式
-export type AIApiFormat = 'openai' | 'anthropic';
+export type AIApiFormat = 'openai' | 'anthropic' | 'ollama';
 
 // 单个供应商配置
 export interface AIProviderConfig {
@@ -19,6 +19,7 @@ export interface AIProviderConfig {
 export interface AIProviderPreset {
   id: string;                    // 预设标识
   name: string;                  // 显示名称
+  icon: 'openai' | 'deepseek' | 'aliyun' | 'ollama' | 'ollama-cloud' | 'anthropic';
   baseUrl: string;               // 默认 Base URL
   apiFormat: AIApiFormat;        // API 格式
   description: string;           // 描述
@@ -29,7 +30,8 @@ export interface AIProviderPreset {
 export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     id: 'openai',
-    name: 'OpenAI（开放人工智能）',
+    name: 'OpenAI',
+    icon: 'openai',
     baseUrl: 'https://api.openai.com/v1',
     apiFormat: 'openai',
     description: 'OpenAI 官方 API，支持 GPT 系列模型',
@@ -37,7 +39,8 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   },
   {
     id: 'deepseek',
-    name: '深度求索（DeepSeek）',
+    name: 'DeepSeek',
+    icon: 'deepseek',
     baseUrl: 'https://api.deepseek.com/v1',
     apiFormat: 'openai',
     description: 'DeepSeek API，性价比高',
@@ -46,6 +49,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   {
     id: 'aliyun',
     name: '阿里云百炼',
+    icon: 'aliyun',
     baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiFormat: 'openai',
     description: '阿里云百炼，支持通义千问等模型',
@@ -53,15 +57,26 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
   },
   {
     id: 'ollama',
-    name: 'Ollama（本地部署）',
+    name: 'Ollama 本地',
+    icon: 'ollama',
     baseUrl: 'http://localhost:11434/v1',
     apiFormat: 'openai',
     description: '本地运行，需先启动 Ollama',
     suggestedModels: ['qwen2.5:7b', 'llama3.1:8b', 'phi3:mini', 'mistral:7b'],
   },
   {
+    id: 'ollama-cloud',
+    name: 'Ollama 云端',
+    icon: 'ollama-cloud',
+    baseUrl: 'https://ollama.com/api',
+    apiFormat: 'ollama',
+    description: 'Ollama 云端模型，使用 Ollama 账号 API Key',
+    suggestedModels: ['gpt-oss:120b', 'qwen3:480b', 'deepseek-v3.1'],
+  },
+  {
     id: 'anthropic',
-    name: 'Anthropic（人类安全）',
+    name: 'Anthropic',
+    icon: 'anthropic',
     baseUrl: 'https://api.anthropic.com',
     apiFormat: 'anthropic',
     description: 'Anthropic 官方 API，Claude 系列模型',
