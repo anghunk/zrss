@@ -2,7 +2,7 @@
 
 界面简洁的现代 RSS 阅读器（浏览器扩展）。
 
-<img width="1508" height="992" alt="image" src="https://github.com/user-attachments/assets/81d708b5-6931-4b07-8174-3c0b0b44dc56" />
+<img width="1392" height="954" alt="image" src="https://github.com/user-attachments/assets/bd282f96-9de8-4a63-96ab-a95dfb8e8310" />
 
 ## 功能
 
