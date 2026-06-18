@@ -2,10 +2,17 @@ import { useState, useMemo, useCallback, useRef } from 'react';
 import { useFeedStore } from '@/stores/feedStore';
 import { useArticleStore } from '@/stores/articleStore';
 import { useUIStore } from '@/stores/uiStore';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import {
   FolderOpen,
   Rss,
@@ -19,7 +26,6 @@ import {
   Settings,
   List,
   FolderInput,
-  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Feed, Folder as FolderType } from '@/types';
@@ -46,13 +52,13 @@ export function Sidebar() {
     reorderFeeds,
     reorderFolders,
   } = useFeedStore();
-  const { selectedFeedId, setSelectedFeedId, markAllAsRead, markFeedAsRead } = useArticleStore();
-  const { setAddFeedOpen, setPage } = useUIStore();
+  const { selectedFeedId, setSelectedFeedId, markAllAsRead } = useArticleStore();
+  const { setAddFeedOpen, setPage, currentPage } = useUIStore();
+  const showNotification = useNotificationStore((state) => state.showNotification);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const [dragItem, setDragItem] = useState<DragItem | null>(null);
   const [dropZone, setDropZone] = useState<DropZone | null>(null);
   const [markAllConfirmOpen, setMarkAllConfirmOpen] = useState(false);
-  const [markFeedConfirmId, setMarkFeedConfirmId] = useState<string | null>(null);
   // 记录哪些分组/根目录被用户手动拖拽重排过。
   // 未在集合中的分组默认按未读数降序排序；一旦用户拖拽过就按 sortOrder 排序。
   const [manuallySortedGroups, setManuallySortedGroups] = useState<Set<string>>(
@@ -194,7 +200,19 @@ export function Sidebar() {
     setDropZone(null);
   };
 
+  /**
+   * 刷新所有订阅源，全部完成后显示全局提示。
+   */
+  const handleRefreshAll = async () => {
+    await refreshAll();
+    showNotification({
+      type: 'success',
+      message: '订阅源已全部更新',
+    });
+  };
+
   const rootFeeds = feedsByFolder['__root__'] || [];
+  const isReaderPage = currentPage === 'reader';
 
   return (
     <div
@@ -224,26 +242,43 @@ export function Sidebar() {
             </Badge>
           )}
         </div>
-        <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => refreshAll()}
-            disabled={loading}
-          >
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setMarkAllConfirmOpen(true)}
-            title="标记全部已读"
-          >
-            <CheckCheck className="h-4 w-4" />
-          </Button>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <div className="flex gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={handleRefreshAll}
+                  disabled={loading}
+                  aria-label={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+                >
+                  <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="end">
+                {loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setMarkAllConfirmOpen(true)}
+                  aria-label="将全部未读文章标记为已读"
+                >
+                  <CheckCheck className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" align="end">
+                将全部未读文章标记为已读
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </div>
 
       <ScrollArea className="flex-1">
@@ -252,7 +287,7 @@ export function Sidebar() {
           <SidebarItem
             icon={<Star className="h-4 w-4" />}
             label="星标"
-            active={selectedFeedId === '__starred__'}
+            active={isReaderPage && selectedFeedId === '__starred__'}
             onClick={() => selectFeed('__starred__' as any)}
           />
 
@@ -261,7 +296,7 @@ export function Sidebar() {
             icon={<Newspaper className="h-4 w-4" />}
             label="全部文章"
             count={totalUnread}
-            active={selectedFeedId === null}
+            active={isReaderPage && selectedFeedId === null}
             onClick={() => selectFeed(null)}
           />
 
@@ -359,9 +394,8 @@ export function Sidebar() {
                         <FeedItem
                           key={feed.id}
                           feed={feed}
-                          active={selectedFeedId === feed.id}
+                          active={isReaderPage && selectedFeedId === feed.id}
                           onClick={() => selectFeed(feed.id)}
-                          onMarkAsRead={(id) => setMarkFeedConfirmId(id)}
                           indent
                           isDragging={
                             dragItem?.type === 'feed' && dragItem.id === feed.id
@@ -441,9 +475,8 @@ export function Sidebar() {
               <FeedItem
                 key={feed.id}
                 feed={feed}
-                active={selectedFeedId === feed.id}
+                active={isReaderPage && selectedFeedId === feed.id}
                 onClick={() => selectFeed(feed.id)}
-                onMarkAsRead={(id) => setMarkFeedConfirmId(id)}
                 isDragging={dragItem?.type === 'feed' && dragItem.id === feed.id}
                 edgeAbove={
                   dragItem?.type === 'feed' && zoneActive && dropZone?.position === 'before'
@@ -483,11 +516,13 @@ export function Sidebar() {
         <SidebarItem
           icon={<List className="h-4 w-4" />}
           label="订阅管理"
+          active={currentPage === 'subscriptions'}
           onClick={() => setPage('subscriptions')}
         />
         <SidebarItem
           icon={<Settings className="h-4 w-4" />}
           label="设置"
+          active={currentPage === 'settings'}
           onClick={() => setPage('settings')}
         />
       </div>
@@ -503,24 +538,6 @@ export function Sidebar() {
         onConfirm={() => {
           markAllAsRead();
           setMarkAllConfirmOpen(false);
-        }}
-      />
-
-      {/* 单个订阅源已读确认弹窗 */}
-      <ConfirmDialog
-        open={!!markFeedConfirmId}
-        onOpenChange={(open) => {
-          if (!open) setMarkFeedConfirmId(null);
-        }}
-        title="标记已读"
-        description={`确定将「${feeds.find((f) => f.id === markFeedConfirmId)?.title || ''}」的所有未读文章标记为已读吗？`}
-        confirmText="标记已读"
-        variant="destructive"
-        onConfirm={() => {
-          if (markFeedConfirmId) {
-            markFeedAsRead(markFeedConfirmId);
-            setMarkFeedConfirmId(null);
-          }
         }}
       />
     </div>
@@ -670,7 +687,6 @@ function FeedItem({
   feed,
   active,
   onClick,
-  onMarkAsRead,
   indent = false,
   isDragging = false,
   edgeAbove = false,
@@ -683,7 +699,6 @@ function FeedItem({
   feed: { id: string; title: string; favicon: string; unreadCount: number };
   active: boolean;
   onClick: () => void;
-  onMarkAsRead?: (feedId: string, e: React.MouseEvent) => void;
   indent?: boolean;
   isDragging?: boolean;
   edgeAbove?: boolean;
@@ -764,23 +779,10 @@ function FeedItem({
         {feed.unreadCount > 0 && (
           <Badge
             variant="secondary"
-            className="text-[10px] px-1.5 py-0 min-w-[1.25rem] justify-center group-hover:hidden"
+            className="text-[10px] px-1.5 py-0 min-w-[1.25rem] justify-center"
           >
             {feed.unreadCount}
           </Badge>
-        )}
-        {feed.unreadCount > 0 && onMarkAsRead && (
-          <button
-            type="button"
-            className="hidden h-5 w-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-primary hover:bg-accent group-hover:inline-flex"
-            onClick={(e) => {
-              e.stopPropagation();
-              onMarkAsRead(feed.id, e);
-            }}
-            title="标记该订阅源全部已读"
-          >
-            <Check className="h-3.5 w-3.5" />
-          </button>
         )}
       </div>
       {edgeBelow && (

@@ -3,8 +3,6 @@ import {
   Plus,
   Trash2,
   RefreshCw,
-  Eye,
-  EyeOff,
   Loader2,
   ChevronRight,
 } from 'lucide-react';
@@ -20,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { PasswordInput } from '@/components/common/PasswordInput';
 import {
   Dialog,
   DialogContent,
@@ -294,7 +293,6 @@ export function AIModelManager() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const [fetchingModels, setFetchingModels] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
@@ -561,28 +559,14 @@ export function AIModelManager() {
             {/* API Key */}
             <div className="space-y-2">
               <Label>API Key</Label>
-              <div className="relative">
-                <Input
-                  type={showApiKey ? 'text' : 'password'}
-                  placeholder="sk-..."
-                  value={selectedProvider.apiKey}
-                  onChange={(e) =>
-                    updateProvider(selectedProvider.id, { apiKey: e.target.value })
-                  }
-                  className="pr-9"
-                />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowApiKey(!showApiKey)}
-                >
-                  {showApiKey ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+              <PasswordInput
+                placeholder="sk-..."
+                value={selectedProvider.apiKey}
+                onChange={(e) =>
+                  updateProvider(selectedProvider.id, { apiKey: e.target.value })
+                }
+                toggleLabel="查看 API Key"
+              />
             </div>
 
             {/* Base URL */}

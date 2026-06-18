@@ -168,3 +168,42 @@
   min-width: 100% !important;
   display: block !important;
 }
+
+@layer components {
+  .notification-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .notification-toast-slot {
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .notification-toast {
+    animation: notification-toast-in 180ms ease-out;
+    transform-origin: top center;
+    transition:
+      opacity 180ms ease-in,
+      transform 180ms ease-in;
+  }
+
+  .notification-toast-closing {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes notification-toast-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

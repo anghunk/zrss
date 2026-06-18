@@ -6,7 +6,20 @@ import { resolveFavicon } from './favicon';
 import type { Feed, Article } from '@/types';
 import { nanoid } from 'nanoid';
 
-// 抓取单个 feed
+export interface FetchFeedResult {
+  feedId: string;
+  newArticles: number;
+  error?: string;
+  feed?: Feed;
+}
+
+export interface FetchAllFeedsOptions {
+  onFeedFetched?: (result: FetchFeedResult) => void | Promise<void>;
+}
+
+/**
+ * 抓取单个订阅源并更新文章与未读数。
+ */
 export async function fetchFeed(feedId: string): Promise<{ newArticles: number; error?: string }> {
   try {
     const feed = await db.feeds.get(feedId);
@@ -84,12 +97,12 @@ export async function fetchFeed(feedId: string): Promise<{ newArticles: number; 
       await db.articles.bulkAdd(newArticles);
     }
 
-    // 更新未读数
-    await updateUnreadCount(feedId);
-
     // 清理旧文章
     const settings = await getSettings();
     await cleanupOldArticles(feedId, settings.maxArticlesPerFeed);
+
+    // 更新未读数
+    await updateUnreadCount(feedId);
 
     return { newArticles: newArticles.length };
   } catch (err) {
@@ -98,14 +111,21 @@ export async function fetchFeed(feedId: string): Promise<{ newArticles: number; 
   }
 }
 
-// 抓取所有 feeds
-export async function fetchAllFeeds(): Promise<{ feedId: string; newArticles: number; error?: string }[]> {
+/**
+ * 抓取所有订阅源，并在每个订阅源完成后触发进度回调。
+ */
+export async function fetchAllFeeds(
+  options: FetchAllFeedsOptions = {}
+): Promise<FetchFeedResult[]> {
   const feeds = await db.feeds.toArray();
-  const results = [];
+  const results: FetchFeedResult[] = [];
 
   for (const feed of feeds) {
     const result = await fetchFeed(feed.id);
-    results.push({ feedId: feed.id, ...result });
+    const updatedFeed = await db.feeds.get(feed.id);
+    const item = { feedId: feed.id, ...result, feed: updatedFeed };
+    results.push(item);
+    await options.onFeedFetched?.(item);
   }
 
   return results;

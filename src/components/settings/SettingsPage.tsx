@@ -1,10 +1,12 @@
 import { useUIStore } from '@/stores/uiStore';
 import { useFeedStore } from '@/stores/feedStore';
+import { useNotificationStore } from '@/stores/notificationStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Switch } from '@/components/ui/switch';
+import { PasswordInput } from '@/components/common/PasswordInput';
 import {
   Dialog,
   DialogContent,
@@ -32,11 +34,12 @@ import {
   Brain,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 type SettingsSection = 'general' | 'opml' | 'sync' | 'ai';
 
-const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] = [
+const sections: { id: SettingsSection; label: string; icon: ReactNode }[] = [
   { id: 'general', label: '通用', icon: <SettingsIcon className="h-4 w-4" /> },
   { id: 'opml', label: '导入 / 导出', icon: <ArrowUpDown className="h-4 w-4" /> },
   { id: 'sync', label: 'WebDAV 同步', icon: <CloudCog className="h-4 w-4" /> },
@@ -46,8 +49,8 @@ const sections: { id: SettingsSection; label: string; icon: React.ReactNode }[] 
 export function SettingsPage() {
   const { settings, loadSettings, updateSettings, theme, setTheme } = useUIStore();
   const { loadFeeds } = useFeedStore();
+  const showNotification = useNotificationStore((state) => state.showNotification);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [status, setStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const [backupFiles, setBackupFiles] = useState<string[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
@@ -58,6 +61,36 @@ export function SettingsPage() {
       loadSettings();
     }
   }, [settings, loadSettings]);
+
+  /**
+   * 使用全局提示展示设置保存结果。
+   */
+  const notifySettingsSaved = (message = '设置已保存') => {
+    showNotification({
+      type: 'success',
+      message,
+      duration: 1800,
+    });
+  };
+
+  /**
+   * 保存设置并显示全局提示。
+   */
+  const handleUpdateSettings = async (
+    updates: Parameters<typeof updateSettings>[0],
+    message?: string
+  ) => {
+    await updateSettings(updates);
+    notifySettingsSaved(message);
+  };
+
+  /**
+   * 切换主题并显示全局提示。
+   */
+  const handleSetTheme = async (nextTheme: 'light' | 'dark' | 'system') => {
+    await setTheme(nextTheme);
+    notifySettingsSaved('主题已更新');
+  };
 
   const handleExportOPML = async () => {
     try {
@@ -71,9 +104,9 @@ export function SettingsPage() {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      setStatus({ message: '导出成功！', type: 'success' });
+      showNotification({ type: 'success', message: 'OPML 导出成功' });
     } catch (err) {
-      setStatus({ message: `导出失败：${err}`, type: 'error' });
+      showNotification({ type: 'error', message: `OPML 导出失败：${err}` });
     }
   };
 
@@ -85,16 +118,16 @@ export function SettingsPage() {
       const text = await file.text();
       const result = await importFromOPML(text);
       await loadFeeds();
-      setStatus({
+      showNotification({
         message: `已导入 ${result.added} 个订阅` +
           (result.errors.length > 0 ? `，${result.errors.length} 个错误` : ''),
-        type: result.errors.length > 0 ? 'error' : 'success',
+        type: result.errors.length > 0 ? 'warning' : 'success',
       });
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     } catch (err) {
-      setStatus({ message: `导入失败：${err}`, type: 'error' });
+      showNotification({ type: 'error', message: `OPML 导入失败：${err}` });
     }
   };
 
@@ -113,7 +146,6 @@ export function SettingsPage() {
               key={section.id}
               onClick={() => {
                 setActiveSection(section.id);
-                setStatus(null);
                 setBackupFiles([]);
                 setShowBackupDialog(false);
               }}
@@ -158,7 +190,7 @@ export function SettingsPage() {
                           key={t}
                           variant={theme === t ? 'default' : 'outline'}
                           size="sm"
-                          onClick={() => setTheme(t)}
+                          onClick={() => handleSetTheme(t)}
                           className="capitalize"
                         >
                           {t === 'light' ? '浅色' : t === 'dark' ? '深色' : '跟随系统'}
@@ -177,9 +209,9 @@ export function SettingsPage() {
                       max={120}
                       value={settings.refreshInterval}
                       onChange={(e) =>
-                        updateSettings({
+                        handleUpdateSettings({
                           refreshInterval: Number(e.target.value) || 15,
-                        })
+                        }, '刷新间隔已保存')
                       }
                     />
                   </section>
@@ -195,7 +227,7 @@ export function SettingsPage() {
                     <Switch
                       checked={settings.autoMarkRead}
                       onCheckedChange={(checked) =>
-                        updateSettings({ autoMarkRead: checked })
+                        handleUpdateSettings({ autoMarkRead: checked }, '自动标记已读设置已保存')
                       }
                     />
                   </section>
@@ -211,7 +243,7 @@ export function SettingsPage() {
                     <Switch
                       checked={settings.aiEnabled}
                       onCheckedChange={(checked) =>
-                        updateSettings({ aiEnabled: checked })
+                        handleUpdateSettings({ aiEnabled: checked }, 'AI 摘要功能设置已保存')
                       }
                     />
                   </section>
@@ -227,7 +259,7 @@ export function SettingsPage() {
                     <Switch
                       checked={settings.aiAutoSummarize}
                       onCheckedChange={(checked) =>
-                        updateSettings({ aiAutoSummarize: checked })
+                        handleUpdateSettings({ aiAutoSummarize: checked }, '自动 AI 摘要设置已保存')
                       }
                       disabled={!settings.aiEnabled}
                     />
@@ -243,9 +275,9 @@ export function SettingsPage() {
                       max={5000}
                       value={settings.maxArticlesPerFeed}
                       onChange={(e) =>
-                        updateSettings({
+                        handleUpdateSettings({
                           maxArticlesPerFeed: Number(e.target.value) || 500,
-                        })
+                        }, '文章保留数量已保存')
                       }
                     />
                     <p className="text-xs text-muted-foreground">
@@ -283,9 +315,6 @@ export function SettingsPage() {
                         onChange={handleImportOPML}
                       />
                     </div>
-                    {status && (
-                      <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
-                    )}
                   </section>
                 </>
               )}
@@ -301,23 +330,24 @@ export function SettingsPage() {
                       <Input
                         placeholder="WebDAV 链接"
                         value={settings.webdavUrl}
-                        onChange={(e) => updateSettings({ webdavUrl: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateSettings({ webdavUrl: e.target.value }, 'WebDAV 链接已保存')
+                        }
                       />
                       <div className="flex gap-2">
                         <Input
                           placeholder="用户名"
                           value={settings.webdavUser}
                           onChange={(e) =>
-                            updateSettings({ webdavUser: e.target.value })
+                            handleUpdateSettings({ webdavUser: e.target.value }, 'WebDAV 用户名已保存')
                           }
                           className="flex-1"
                         />
-                        <Input
+                        <PasswordInput
                           placeholder="密码"
-                          type="password"
                           value={settings.webdavPass}
                           onChange={(e) =>
-                            updateSettings({ webdavPass: e.target.value })
+                            handleUpdateSettings({ webdavPass: e.target.value }, 'WebDAV 密码已保存')
                           }
                           className="flex-1"
                         />
@@ -325,7 +355,9 @@ export function SettingsPage() {
                       <Input
                         placeholder="保存目录 (留空使用 WebDAV 根目录，例如 zrss)"
                         value={settings.webdavPath}
-                        onChange={(e) => updateSettings({ webdavPath: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateSettings({ webdavPath: e.target.value }, 'WebDAV 保存目录已保存')
+                        }
                       />
                       <div className="flex gap-2 pt-2">
                         <Button
@@ -333,7 +365,10 @@ export function SettingsPage() {
                           size="sm"
                           onClick={async () => {
                             const result = await testWebDAVConnection();
-                            setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                            showNotification({
+                              message: result.message,
+                              type: result.success ? 'success' : 'error',
+                            });
                           }}
                         >
                           <Cloud className="mr-2 h-4 w-4" />
@@ -344,7 +379,10 @@ export function SettingsPage() {
                           size="sm"
                           onClick={async () => {
                             const result = await exportToWebDAV();
-                            setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                            showNotification({
+                              message: result.message,
+                              type: result.success ? 'success' : 'error',
+                            });
                           }}
                         >
                           <Upload className="mr-2 h-4 w-4" />
@@ -358,9 +396,9 @@ export function SettingsPage() {
                             if (result.success) {
                               setBackupFiles(result.files);
                               setShowBackupDialog(true);
-                              setStatus({ message: result.message, type: 'success' });
+                              showNotification({ message: result.message, type: 'success' });
                             } else {
-                              setStatus({ message: result.message, type: 'error' });
+                              showNotification({ message: result.message, type: 'error' });
                             }
                           }}
                         >
@@ -395,7 +433,10 @@ export function SettingsPage() {
                                         size="sm"
                                         onClick={async () => {
                                           const result = await importFromWebDAV(file);
-                                          setStatus({ message: result.message, type: result.success ? 'success' : 'error' });
+                                          showNotification({
+                                            message: result.message,
+                                            type: result.success ? 'success' : 'error',
+                                          });
                                           if (result.success) {
                                             await loadFeeds();
                                             setShowBackupDialog(false);
@@ -416,9 +457,9 @@ export function SettingsPage() {
                                           setDeletingFile('');
                                           if (result.success) {
                                             setBackupFiles((prev) => prev.filter((f) => f !== file));
-                                            setStatus({ message: result.message, type: 'success' });
+                                            showNotification({ message: result.message, type: 'success' });
                                           } else {
-                                            setStatus({ message: result.message, type: 'error' });
+                                            showNotification({ message: result.message, type: 'error' });
                                           }
                                         }}
                                       >
@@ -433,9 +474,6 @@ export function SettingsPage() {
                         </DialogContent>
                       </Dialog>
                     </div>
-                    {status && (
-                      <p className={`text-xs ${status.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{status.message}</p>
-                    )}
                   </section>
                 </>
               )}

@@ -9,11 +9,12 @@ import { TopBar } from './TopBar';
 import { AddFeedDialog } from '@/components/feeds/AddFeedDialog';
 import { SettingsPage } from '@/components/settings/SettingsPage';
 import { SubscriptionsPage } from '@/components/feeds/SubscriptionsPage';
+import { NotificationCenter } from '@/components/common/NotificationCenter';
 import { cn } from '@/lib/utils';
 
 export function AppLayout() {
   const { loadFeeds, loadFolders } = useFeedStore();
-  const { loadArticles, filter } = useArticleStore();
+  const { loadArticles, filter, selectedFeedId, setSelectedFeedId } = useArticleStore();
   const { initializeTheme, sidebarCollapsed, currentPage } = useUIStore();
 
   // 初始化
@@ -30,6 +31,13 @@ export function AppLayout() {
   useEffect(() => {
     loadArticles();
   }, [filter, loadArticles]);
+
+  // 离开阅读页时清除订阅源筛选，避免侧边栏在管理类页面残留订阅源选中态。
+  useEffect(() => {
+    if (currentPage !== 'reader' && selectedFeedId !== null) {
+      setSelectedFeedId(null);
+    }
+  }, [currentPage, selectedFeedId, setSelectedFeedId]);
 
   return (
     <div className="flex h-screen w-screen flex-col overflow-hidden bg-background text-foreground">
@@ -62,6 +70,7 @@ export function AppLayout() {
         </div>
       </div>
       <AddFeedDialog />
+      <NotificationCenter />
     </div>
   );
 }

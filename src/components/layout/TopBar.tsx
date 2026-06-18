@@ -4,7 +4,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Menu } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import type { FilterType } from '@/types';
 
 export function TopBar() {

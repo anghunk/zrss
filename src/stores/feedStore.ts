@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { db, updateUnreadCount } from '@/lib/db';
-import { addFeed, deleteFeed, fetchAllFeeds } from '@/lib/feed-fetcher';
+import { addFeed, deleteFeed, fetchAllFeeds, fetchFeed } from '@/lib/feed-fetcher';
 import type { Feed, Folder } from '@/types';
 import { nanoid } from 'nanoid';
 
@@ -22,8 +22,23 @@ interface FeedState {
   moveFeed: (feedId: string, targetFolderId: string | null) => Promise<void>;
   reorderFeeds: (feedIds: string[], targetFolderId: string | null) => Promise<void>;
   reorderFolders: (folderIds: string[]) => Promise<void>;
+  refreshFeed: (feedId: string) => Promise<{ newArticles: number; error?: string }>;
   refreshAll: () => Promise<void>;
   setError: (error: string | null) => void;
+}
+
+/**
+ * 将刷新后的单个订阅源合并进列表状态。
+ */
+function mergeFeed(feeds: Feed[], updatedFeed: Feed): Feed[] {
+  const exists = feeds.some((feed) => feed.id === updatedFeed.id);
+  if (!exists) {
+    return [...feeds, updatedFeed];
+  }
+
+  return feeds.map((feed) =>
+    feed.id === updatedFeed.id ? { ...feed, ...updatedFeed } : feed
+  );
 }
 
 export const useFeedStore = create<FeedState>((set, get) => ({
@@ -140,10 +155,47 @@ export const useFeedStore = create<FeedState>((set, get) => ({
     await get().loadFolders();
   },
 
+  /**
+   * 只刷新指定订阅源，并同步更新订阅源列表状态。
+   */
+  refreshFeed: async (feedId: string) => {
+    set({ loading: true, error: null });
+    try {
+      const result = await fetchFeed(feedId);
+      const updatedFeed = await db.feeds.get(feedId);
+      if (updatedFeed) {
+        set((state) => ({
+          feeds: mergeFeed(state.feeds, updatedFeed),
+        }));
+      }
+      await get().loadFeeds();
+      if (result.error) {
+        set({ error: result.error });
+      }
+      return result;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to refresh feed';
+      set({ error: message });
+      return { newArticles: 0, error: message };
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  /**
+   * 刷新全部订阅源，并在单个订阅源完成时增量更新侧边栏状态。
+   */
   refreshAll: async () => {
     set({ loading: true, error: null });
     try {
-      await fetchAllFeeds();
+      await fetchAllFeeds({
+        onFeedFetched: ({ feed }) => {
+          if (!feed) return;
+          set((state) => ({
+            feeds: mergeFeed(state.feeds, feed),
+          }));
+        },
+      });
       await get().loadFeeds();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to refresh';
