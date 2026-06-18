@@ -3,6 +3,7 @@ import { getSettings } from '@/lib/db';
 
 export default defineBackground(() => {
   const ALARM_NAME = 'zrss-refresh';
+  let refreshPromise: Promise<void> | null = null;
 
   /**
    * 根据当前设置重建 RSS 刷新定时器。
@@ -22,7 +23,7 @@ export default defineBackground(() => {
   /**
    * 抓取所有订阅源并通知已打开的阅读器页面刷新数据。
    */
-  async function doRefresh() {
+  async function refreshFeeds() {
     try {
       console.log('[ZRSS] Starting feed refresh...');
       const results = await fetchAllFeeds();
@@ -48,6 +49,17 @@ export default defineBackground(() => {
     }
   }
 
+  // Reuse the in-flight refresh when multiple extension views open at once.
+  async function doRefresh() {
+    if (!refreshPromise) {
+      refreshPromise = refreshFeeds().finally(() => {
+        refreshPromise = null;
+      });
+    }
+
+    await refreshPromise;
+  }
+
   // 监听定时器
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === ALARM_NAME) {
@@ -58,12 +70,12 @@ export default defineBackground(() => {
   // 监听消息
   browser.runtime.onMessage.addListener((message) => {
     if (message.type === 'FETCH_FEEDS') {
-      doRefresh();
-      return true;
+      void doRefresh();
+      return;
     }
     if (message.type === 'SETTINGS_UPDATED') {
-      setupAlarm();
-      return true;
+      void setupAlarm();
+      return;
     }
   });
 

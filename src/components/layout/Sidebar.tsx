@@ -266,7 +266,7 @@ export function Sidebar() {
       <div className="flex items-center justify-between border-b px-3 h-11">
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="ZRSS" className="h-6 w-6" />
-          <span className="font-semibold">ZRSS</span>
+          <span className="font-semibold text-base">ZRSS</span>
         </div>
         <div className="flex gap-1">
           <TooltipIconButton
@@ -797,7 +797,7 @@ function FeedItem({
           onClick();
         }}
         className={cn(
-          'group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors select-none',
+          'group flex items-center gap-2 rounded-md px-2 py-1.5 text-[15px] transition-colors select-none',
           indent && 'ml-4',
           isDragging && 'opacity-40',
           !isDragging &&
@@ -852,7 +852,7 @@ function SidebarItem({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 cursor-pointer rounded-md px-2 py-1.5 text-sm transition-colors',
+        'flex items-center gap-2 cursor-pointer rounded-md px-2 py-1.5 text-[15px] transition-colors',
         active ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/50'
       )}
       onClick={onClick}

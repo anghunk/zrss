@@ -143,7 +143,7 @@ export function SettingsPage() {
       {/* 左侧菜单 */}
       <div className="w-48 shrink-0 border-r bg-muted/20">
         <div className="px-4 py-4">
-          <h2 className="text-sm font-semibold text-muted-foreground">设置</h2>
+          <h2 className="text-[15px] font-semibold text-muted-foreground">设置</h2>
         </div>
         <nav className="space-y-0.5 px-2">
           {sections.map((section) => (
@@ -155,7 +155,7 @@ export function SettingsPage() {
                 setShowBackupDialog(false);
               }}
               className={cn(
-                'flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors',
+                'flex w-full items-center gap-2 rounded-md px-3 py-2 text-[15px] transition-colors',
                 activeSection === section.id
                   ? 'bg-accent text-accent-foreground font-medium'
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'

@@ -4,6 +4,7 @@ import logoImg from '@/assets/logo.png';
 import { detectFeedsInTab, type DetectedFeed } from '@/lib/rss-detector';
 import { db } from '@/lib/db';
 import { deleteFeed } from '@/lib/feed-fetcher';
+import { requestFetchFeeds } from '@/lib/feed-refresh';
 
 type Status = 'loading' | 'found' | 'empty' | 'error';
 
@@ -15,6 +16,7 @@ export function PopupApp() {
   const [subscribing, setSubscribing] = useState<string | null>(null);
 
   useEffect(() => {
+    void requestFetchFeeds();
     detect();
   }, []);
 

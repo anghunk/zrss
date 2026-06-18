@@ -221,7 +221,7 @@ export function ArticleDetail() {
             key={article.id}
             className="article-detail-enter prose prose-sm dark:prose-invert max-w-none"
           >
-            <h1 className="text-xl font-bold leading-tight mb-2">{article.title}</h1>
+            <h1 className="text-2xl font-bold leading-tight mb-2">{article.title}</h1>
             {article.author && (
               <p className="text-sm text-muted-foreground mb-4 not-prose">
                 作者: {article.author}

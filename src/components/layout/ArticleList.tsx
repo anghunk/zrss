@@ -416,19 +416,19 @@ function ArticleCard({
 
         <div className="flex-1 min-w-0">
           {/* Title */}
-          <h3 className="text-sm leading-snug line-clamp-2 font-normal text-foreground">
+          <h3 className="text-base leading-snug line-clamp-2 font-normal text-foreground">
             {article.title}
           </h3>
 
           {/* Snippet */}
           {article.contentSnippet && (
-            <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+            <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">
               {article.contentSnippet}
             </p>
           )}
 
           {/* Meta */}
-          <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               {feedFavicon ? (
                 <img src={feedFavicon} alt="" className="h-3 w-3 rounded-sm" />
