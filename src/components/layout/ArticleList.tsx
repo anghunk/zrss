@@ -19,12 +19,15 @@ export function ArticleList() {
     markFeedAsRead,
     loadArticles,
   } = useArticleStore();
-  const { feeds, loading, refreshFeed } = useFeedStore();
+  const { feeds, refreshingFeedIds, refreshFeed } = useFeedStore();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const [markFeedConfirmOpen, setMarkFeedConfirmOpen] = useState(false);
 
   const feedMap = new Map(feeds.map((f) => [f.id, f]));
   const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId);
+  const isRefreshingSelectedFeed = selectedFeed
+    ? refreshingFeedIds.includes(selectedFeed.id)
+    : false;
 
   /**
    * 刷新当前订阅源，并在完成后重新加载文章列表。
@@ -75,12 +78,12 @@ export function ArticleList() {
           <div className="flex shrink-0 gap-1">
             <TooltipIconButton
               onClick={handleRefreshSelectedFeed}
-              disabled={loading}
-              ariaLabel={loading ? '正在刷新本订阅源' : '刷新本订阅源'}
-              tooltip={loading ? '正在刷新本订阅源' : '刷新本订阅源'}
+              disabled={isRefreshingSelectedFeed}
+              ariaLabel={isRefreshingSelectedFeed ? '正在刷新本订阅源' : '刷新本订阅源'}
+              tooltip={isRefreshingSelectedFeed ? '正在刷新本订阅源' : '刷新本订阅源'}
               tooltipAlign="end"
             >
-              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+              <RefreshCw className={cn('h-4 w-4', isRefreshingSelectedFeed && 'animate-spin')} />
             </TooltipIconButton>
             <TooltipIconButton
               onClick={() => setMarkFeedConfirmOpen(true)}

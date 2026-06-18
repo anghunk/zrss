@@ -8,6 +8,8 @@ interface FeedState {
   feeds: Feed[];
   folders: Folder[];
   loading: boolean;
+  refreshingAll: boolean;
+  refreshingFeedIds: string[];
   error: string | null;
 
   // Actions
@@ -45,6 +47,8 @@ export const useFeedStore = create<FeedState>((set, get) => ({
   feeds: [],
   folders: [],
   loading: false,
+  refreshingAll: false,
+  refreshingFeedIds: [],
   error: null,
 
   loadFeeds: async () => {
@@ -159,7 +163,12 @@ export const useFeedStore = create<FeedState>((set, get) => ({
    * 只刷新指定订阅源，并同步更新订阅源列表状态。
    */
   refreshFeed: async (feedId: string) => {
-    set({ loading: true, error: null });
+    set((state) => ({
+      error: null,
+      refreshingFeedIds: state.refreshingFeedIds.includes(feedId)
+        ? state.refreshingFeedIds
+        : [...state.refreshingFeedIds, feedId],
+    }));
     try {
       const result = await fetchFeed(feedId);
       const updatedFeed = await db.feeds.get(feedId);
@@ -178,7 +187,9 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       set({ error: message });
       return { newArticles: 0, error: message };
     } finally {
-      set({ loading: false });
+      set((state) => ({
+        refreshingFeedIds: state.refreshingFeedIds.filter((id) => id !== feedId),
+      }));
     }
   },
 
@@ -186,7 +197,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
    * 刷新全部订阅源，并在单个订阅源完成时增量更新侧边栏状态。
    */
   refreshAll: async () => {
-    set({ loading: true, error: null });
+    set({ refreshingAll: true, error: null });
     try {
       await fetchAllFeeds({
         onFeedFetched: ({ feed }) => {
@@ -201,7 +212,7 @@ export const useFeedStore = create<FeedState>((set, get) => ({
       const message = err instanceof Error ? err.message : 'Failed to refresh';
       set({ error: message });
     } finally {
-      set({ loading: false });
+      set({ refreshingAll: false });
     }
   },
 

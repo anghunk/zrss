@@ -1,6 +1,7 @@
 import { useUIStore } from '@/stores/uiStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useNotificationStore } from '@/stores/notificationStore';
+import logoImg from '@/assets/logo.png';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,18 +33,20 @@ import {
   CloudCog,
   Trash2,
   Brain,
+  Info,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-type SettingsSection = 'general' | 'opml' | 'sync' | 'ai';
+type SettingsSection = 'general' | 'opml' | 'sync' | 'ai' | 'about';
 
 const sections: { id: SettingsSection; label: string; icon: ReactNode }[] = [
   { id: 'general', label: '通用', icon: <SettingsIcon className="h-4 w-4" /> },
   { id: 'opml', label: '导入 / 导出', icon: <ArrowUpDown className="h-4 w-4" /> },
   { id: 'sync', label: 'WebDAV 同步', icon: <CloudCog className="h-4 w-4" /> },
   { id: 'ai', label: 'AI 服务', icon: <Brain className="h-4 w-4" /> },
+  { id: 'about', label: '关于', icon: <Info className="h-4 w-4" /> },
 ];
 
 export function SettingsPage() {
@@ -55,6 +58,7 @@ export function SettingsPage() {
   const [backupFiles, setBackupFiles] = useState<string[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string>('');
+  const appVersion = browser.runtime.getManifest().version;
 
   useEffect(() => {
     if (!settings) {
@@ -473,6 +477,42 @@ export function SettingsPage() {
                           </ScrollArea>
                         </DialogContent>
                       </Dialog>
+                    </div>
+                  </section>
+                </>
+              )}
+
+              {activeSection === 'about' && (
+                <>
+                  <section className="space-y-4">
+                    <div className="space-y-3">
+                      <img
+                        src={logoImg}
+                        alt="ZRSS"
+                        className="h-14 w-14 rounded-xl border bg-background object-contain p-2"
+                      />
+                      <Label className="block pt-1 text-base font-semibold">关于 ZRSS</Label>
+                      <p className="text-sm leading-6 text-muted-foreground">
+                        ZRSS 是一款界面简洁的现代 RSS 阅读器浏览器扩展，帮助你集中订阅、阅读和管理信息源。
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center justify-between border-b py-2">
+                        <span className="text-muted-foreground">当前版本</span>
+                        <span className="font-medium">{appVersion}</span>
+                      </div>
+                      <div className="flex items-center justify-between border-b py-2">
+                        <span className="text-muted-foreground">GitHub</span>
+                        <a
+                          href="https://github.com/anghunk/zrss"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-primary hover:underline"
+                        >
+                          anghunk/zrss
+                        </a>
+                      </div>
                     </div>
                   </section>
                 </>

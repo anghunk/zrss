@@ -41,7 +41,7 @@ export function Sidebar() {
   const {
     feeds,
     folders,
-    loading,
+    refreshingAll,
     refreshAll,
     moveFeed,
     reorderFeeds,
@@ -240,12 +240,12 @@ export function Sidebar() {
         <div className="flex gap-1">
           <TooltipIconButton
             onClick={handleRefreshAll}
-            disabled={loading}
-            ariaLabel={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
-            tooltip={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+            disabled={refreshingAll}
+            ariaLabel={refreshingAll ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+            tooltip={refreshingAll ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
             tooltipAlign="end"
           >
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            <RefreshCw className={cn('h-4 w-4', refreshingAll && 'animate-spin')} />
           </TooltipIconButton>
           <TooltipIconButton
             onClick={() => setMarkAllConfirmOpen(true)}
