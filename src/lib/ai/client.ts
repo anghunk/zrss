@@ -10,6 +10,9 @@ export class AIError extends Error {
   }
 }
 
+const ANTHROPIC_API_VERSION = '2023-06-01';
+const ANTHROPIC_MESSAGES_ENDPOINT = '/v1/messages';
+
 // ==================== OpenAI 格式 ====================
 
 async function chatStreamOpenAI(
@@ -104,15 +107,32 @@ async function parseOpenAIStream(
 
 // ==================== Anthropic 格式 ====================
 
+/**
+ * 构建 Anthropic Messages API 的完整请求地址。
+ *
+ * 兼容用户填写服务根地址、`/v1` Base URL 或完整 `/v1/messages` 端点。
+ */
+function buildAnthropicMessagesUrl(baseUrl: string): string {
+  const normalizedBaseUrl = baseUrl.replace(/\/+$/, '');
+  if (/\/v1\/messages$/i.test(normalizedBaseUrl)) {
+    return normalizedBaseUrl;
+  }
+  if (/\/messages$/i.test(normalizedBaseUrl)) {
+    return `${normalizedBaseUrl.replace(/\/messages$/i, '')}${ANTHROPIC_MESSAGES_ENDPOINT}`;
+  }
+  if (/\/v1$/i.test(normalizedBaseUrl)) {
+    return `${normalizedBaseUrl}/messages`;
+  }
+  return `${normalizedBaseUrl}${ANTHROPIC_MESSAGES_ENDPOINT}`;
+}
+
 async function chatStreamAnthropic(
   messages: { role: string; content: string }[],
   config: AIProviderConfig,
   onChunk: (text: string) => void,
   signal?: AbortSignal
 ): Promise<string> {
-  // Anthropic API URL: baseUrl + /messages
-  const baseUrl = config.baseUrl.replace(/\/+$/, '');
-  const url = `${baseUrl}/messages`;
+  const url = buildAnthropicMessagesUrl(config.baseUrl);
 
   let response: Response;
   try {
@@ -121,7 +141,7 @@ async function chatStreamAnthropic(
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': config.apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': ANTHROPIC_API_VERSION,
       },
       body: JSON.stringify({
         model: config.currentModel,
@@ -416,15 +436,14 @@ async function chatSimpleAnthropic(
   messages: { role: string; content: string }[],
   config: AIProviderConfig
 ): Promise<string> {
-  const baseUrl = config.baseUrl.replace(/\/+$/, '');
-  const url = `${baseUrl}/messages`;
+  const url = buildAnthropicMessagesUrl(config.baseUrl);
 
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': config.apiKey,
-      'anthropic-version': '2023-06-01',
+      'anthropic-version': ANTHROPIC_API_VERSION,
     },
     body: JSON.stringify({
       model: config.currentModel,

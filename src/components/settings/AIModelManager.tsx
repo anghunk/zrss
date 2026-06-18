@@ -141,8 +141,8 @@ function AddProviderDialog({
         baseUrl: preset.baseUrl,
         apiKey: '',
         apiFormat: preset.apiFormat,
-        models: [...preset.suggestedModels],
-        currentModel: preset.suggestedModels[0] || '',
+        models: [],
+        currentModel: '',
       };
       onAdd(provider);
     } else {
@@ -392,9 +392,11 @@ export function AIModelManager() {
       await updateProvider(selectedProvider.id, {
         models,
         modelsUpdatedAt: Date.now(),
-        // 如果当前模型不在列表中，选择第一个
+        // 如果接口没有返回模型列表，清空当前模型，等待用户手动添加。
         currentModel:
-          models.length > 0 && !models.includes(selectedProvider.currentModel)
+          models.length === 0
+            ? ''
+            : !models.includes(selectedProvider.currentModel)
             ? models[0]
             : selectedProvider.currentModel,
       });

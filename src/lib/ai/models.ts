@@ -1,23 +1,15 @@
 import type { AIApiFormat } from '@/types/ai';
 
-// Anthropic 内置模型列表（因为 Anthropic API 没有 /models 端点）
-const ANTHROPIC_MODELS = [
-  'claude-3-5-sonnet-20241022',
-  'claude-3-5-haiku-20241022',
-  'claude-3-opus-20240229',
-  'claude-3-sonnet-20240229',
-  'claude-3-haiku-20240307',
-];
-
-// 从 API 获取模型列表
+/**
+ * 从供应商 API 获取模型列表。
+ */
 export async function fetchModels(
   baseUrl: string,
   apiKey: string,
   apiFormat: AIApiFormat
 ): Promise<string[]> {
   if (apiFormat === 'anthropic') {
-    // Anthropic 没有 /models API，返回内置列表
-    return [...ANTHROPIC_MODELS];
+    return [];
   }
 
   if (apiFormat === 'ollama') {
@@ -52,7 +44,7 @@ export async function fetchModels(
     return [];
   } catch (error) {
     console.error('[AI] 获取模型列表失败:', error);
-    throw error;
+    return [];
   }
 }
 
@@ -85,7 +77,7 @@ async function fetchOllamaModels(baseUrl: string, apiKey: string): Promise<strin
     return [];
   } catch (error) {
     console.error('[AI] 获取 Ollama 模型列表失败:', error);
-    throw error;
+    return [];
   }
 }
 

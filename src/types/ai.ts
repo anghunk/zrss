@@ -77,7 +77,7 @@ export const AI_PROVIDER_PRESETS: AIProviderPreset[] = [
     id: 'anthropic',
     name: 'Anthropic',
     icon: 'anthropic',
-    baseUrl: 'https://api.anthropic.com',
+    baseUrl: 'https://api.anthropic.com/v1',
     apiFormat: 'anthropic',
     description: 'Anthropic 官方 API，Claude 系列模型',
     suggestedModels: ['claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
@@ -104,8 +104,8 @@ export function createProviderFromPreset(
     baseUrl: preset.baseUrl,
     apiKey: '',
     apiFormat: preset.apiFormat,
-    models: [...preset.suggestedModels],
-    currentModel: preset.suggestedModels[0] || '',
+    models: [],
+    currentModel: '',
   };
 }
 
