@@ -2,7 +2,7 @@ import { db, updateUnreadCount, cleanupOldArticles, getSettings } from './db';
 import { parseFeed } from './rss-parser';
 import { generateArticleId } from '@/utils/hash';
 import { sanitizeHtml } from '@/utils/sanitize';
-import { resolveFavicon } from './favicon';
+import { cacheFavicon, isCachedFavicon, resolveFavicon } from './favicon';
 import type { Feed, Article } from '@/types';
 import { nanoid } from 'nanoid';
 
@@ -53,10 +53,16 @@ export async function fetchFeed(feedId: string): Promise<{ newArticles: number; 
     if (parsed.link && !feed.siteUrl) {
       updates.siteUrl = parsed.link;
     }
-    // 若 favicon 仍为空, 尝试解析一次
+    // 若 favicon 仍为空，尝试解析并缓存；已有远程 URL 时顺手迁移为本地 data URL。
     if (!feed.favicon && siteUrl) {
       try {
         updates.favicon = await resolveFavicon(siteUrl, parsed.image);
+      } catch {
+        // ignore
+      }
+    } else if (feed.favicon && !isCachedFavicon(feed.favicon)) {
+      try {
+        updates.favicon = await cacheFavicon(feed.favicon, siteUrl);
       } catch {
         // ignore
       }

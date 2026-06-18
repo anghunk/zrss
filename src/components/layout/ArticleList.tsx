@@ -295,7 +295,7 @@ function ArticleCard({
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-col gap-1 px-4 py-3 transition-colors',
+        'flex cursor-pointer flex-col gap-1 pl-3 pr-4 py-3 transition-colors',
         selected ? 'bg-accent' : 'hover:bg-accent/50',
         article.isRead && 'opacity-60'
       )}

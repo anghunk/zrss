@@ -660,7 +660,7 @@ function FolderHeader({
         onToggle();
       }}
       className={cn(
-        'flex items-center gap-1 cursor-grab rounded px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 select-none transition-colors',
+        'flex items-center gap-1 rounded px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 select-none transition-colors',
         isDragging && 'opacity-40',
         insideActive &&
           'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30'
@@ -759,7 +759,7 @@ function FeedItem({
           onClick();
         }}
         className={cn(
-          'group flex items-center gap-2 cursor-grab rounded-md px-2 py-1.5 text-sm transition-colors select-none',
+          'group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors select-none',
           indent && 'ml-4',
           isDragging && 'opacity-40',
           !isDragging &&

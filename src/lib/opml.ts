@@ -1,5 +1,6 @@
 import { db } from './db';
 import { nanoid } from 'nanoid';
+import { cacheFavicon } from './favicon';
 import type { Feed, Folder } from '@/types';
 
 // 导出为 OPML 格式
@@ -83,15 +84,17 @@ export async function importFromOPML(opmlText: string): Promise<{ added: number;
 
         const now = Date.now();
         const feedId = nanoid();
+        const siteUrl = outline.getAttribute('htmlUrl') || '';
+        const iconUrl = outline.getAttribute('iconUrl') || '';
 
         const feed: Feed = {
           id: feedId,
           url: xmlUrl,
           title: title || xmlUrl,
           description: outline.getAttribute('description') || '',
-          siteUrl: outline.getAttribute('htmlUrl') || '',
+          siteUrl,
           // 优先采用 OPML 中声明的 iconUrl; 其余在下次刷新时由 fetchFeed 解析
-          favicon: outline.getAttribute('iconUrl') || '',
+          favicon: iconUrl ? await cacheFavicon(iconUrl, siteUrl || xmlUrl) : '',
           folderId,
           sortOrder: await db.feeds.count(),
           lastFetchedAt: 0,

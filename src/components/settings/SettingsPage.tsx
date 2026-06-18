@@ -2,6 +2,7 @@ import { useUIStore } from '@/stores/uiStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import logoImg from '@/assets/logo.png';
+import packageJson from '../../../package.json';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,7 +59,7 @@ export function SettingsPage() {
   const [backupFiles, setBackupFiles] = useState<string[]>([]);
   const [showBackupDialog, setShowBackupDialog] = useState(false);
   const [deletingFile, setDeletingFile] = useState<string>('');
-  const appVersion = browser.runtime.getManifest().version;
+  const appVersion = packageJson.version;
 
   useEffect(() => {
     if (!settings) {
