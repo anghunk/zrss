@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Read package version
+        id: package
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="v${VERSION}"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Check release version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.package.outputs.tag }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "latest_tag=$TAG" >> "$GITHUB_OUTPUT"
+            echo "Release $TAG already exists. Skip publishing."
+            exit 0
+          fi
+
+          LATEST_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          LATEST_VERSION="${LATEST_TAG#v}"
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+            echo "latest_tag=" >> "$GITHUB_OUTPUT"
+            echo "No existing release found. Continue publishing."
+            exit 0
+          fi
+
+          COMPARE_RESULT="$(LATEST_VERSION="$LATEST_VERSION" node - <<'NODE'
+          const current = process.env.VERSION;
+          const latest = process.env.LATEST_VERSION;
+
+          const normalize = (value) =>
+            value.split('.').map((part) => Number.parseInt(part, 10) || 0);
+
+          const [ca, cb, cc] = normalize(current);
+          const [la, lb, lc] = normalize(latest);
+
+          if (ca > la || (ca === la && cb > lb) || (ca === la && cb === lb && cc > lc)) {
+            console.log('gt');
+          } else if (ca === la && cb === lb && cc === lc) {
+            console.log('eq');
+          } else {
+            console.log('lt');
+          }
+          NODE
+          )"
+
+          if [ "$COMPARE_RESULT" != "gt" ]; then
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+            echo "latest_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+            echo "Package version ${VERSION} is not newer than release ${LATEST_TAG}. Skip publishing."
+            exit 0
+          fi
+
+          echo "should_release=true" >> "$GITHUB_OUTPUT"
+          echo "latest_tag=${LATEST_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Package version ${VERSION} is newer than release ${LATEST_TAG}. Continue publishing."
+
+      - name: Install dependencies
+        if: steps.release.outputs.should_release == 'true'
+        run: npm ci
+
+      - name: Build Chrome package
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          npm run build
+          npm run zip
+
+      - name: Build Firefox package
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          npm run build:firefox
+          npm run zip:firefox
+
+      - name: Collect release assets
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          set -euo pipefail
+
+          mkdir -p release-assets
+          find .output -maxdepth 1 -type f \( -name "*-chrome.zip" -o -name "*-firefox.zip" \) -print -exec cp {} release-assets/ \;
+
+          ZIP_COUNT="$(find release-assets -maxdepth 1 -type f -name "*.zip" | wc -l | tr -d ' ')"
+          if [ "$ZIP_COUNT" -lt 2 ]; then
+            echo "Expected Chrome and Firefox zip files, but found $ZIP_COUNT."
+            find .output -maxdepth 2 -type f -name "*.zip" -print
+            exit 1
+          fi
+
+      - name: Generate release notes
+        if: steps.release.outputs.should_release == 'true'
+        env:
+          TAG: ${{ steps.package.outputs.tag }}
+          VERSION: ${{ steps.package.outputs.version }}
+          LATEST_TAG: ${{ steps.release.outputs.latest_tag }}
+        run: |
+          set -euo pipefail
+
+          {
+            echo "## ZRSS ${VERSION}"
+            echo
+            echo "### 更新日志"
+            echo
+          } > release-notes.md
+
+          if [ -n "$LATEST_TAG" ] && git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
+            COMMITS="$(git log "${LATEST_TAG}..HEAD" --pretty=format:"- %s (%h)")"
+          else
+            COMMITS="$(git log --pretty=format:"- %s (%h)")"
+          fi
+
+          if [ -n "$COMMITS" ]; then
+            printf '%s\n' "$COMMITS" >> release-notes.md
+          else
+            echo "- 发布 ${TAG}" >> release-notes.md
+          fi
+
+      - name: Create GitHub release
+        if: steps.release.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.package.outputs.tag }}
+          VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          gh release create "$TAG" release-assets/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "ZRSS ${VERSION}" \
+            --notes-file release-notes.md \
+            --target "$GITHUB_SHA"
