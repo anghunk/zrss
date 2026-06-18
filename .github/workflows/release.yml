@@ -137,6 +137,9 @@ jobs:
             echo
             echo "### 更新日志"
             echo
+            echo "<details>"
+            echo "<summary>展开查看详情</summary>"
+            echo
           } > release-notes.md
 
           if [ -n "$LATEST_TAG" ] && git rev-parse "$LATEST_TAG" >/dev/null 2>&1; then
@@ -150,6 +153,13 @@ jobs:
           else
             echo "- 发布 ${TAG}" >> release-notes.md
           fi
+
+          {
+            echo
+            echo "</details>"
+            echo
+            echo "发布时间：$(TZ=Asia/Shanghai date '+%Y年%m月%d日 %H:%M:%S')"
+          } >> release-notes.md
 
       - name: Create GitHub release
         if: steps.release.outputs.should_release == 'true'
