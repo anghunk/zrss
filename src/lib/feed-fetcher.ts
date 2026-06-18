@@ -1,4 +1,4 @@
-import { db, updateUnreadCount, cleanupOldArticles, getSettings } from './db';
+import { db, updateUnreadCount, cleanupOldArticles, getSettings, deleteArticlesWithAICache } from './db';
 import { parseFeed } from './rss-parser';
 import { generateArticleId } from '@/utils/hash';
 import { sanitizeHtml } from '@/utils/sanitize';
@@ -209,8 +209,17 @@ export async function addFeed(url: string, folderId: string | null = null): Prom
   return feed;
 }
 
-// 删除 feed 及其文章
+/**
+ * 删除订阅源及其文章、文章关联的 AI 摘要和翻译缓存。
+ */
 export async function deleteFeed(feedId: string): Promise<void> {
-  await db.articles.where('feedId').equals(feedId).delete();
-  await db.feeds.delete(feedId);
+  await db.transaction('rw', db.feeds, db.articles, db.aiCache, async () => {
+    const articleIds = await db.articles
+      .where('feedId')
+      .equals(feedId)
+      .primaryKeys();
+
+    await deleteArticlesWithAICache(articleIds as string[]);
+    await db.feeds.delete(feedId);
+  });
 }

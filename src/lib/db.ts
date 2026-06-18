@@ -2,6 +2,8 @@ import Dexie, { type Table } from 'dexie';
 import type { Feed, Article, Folder, Settings } from '@/types';
 import type { AICacheEntry, AITaskType } from '@/types/ai';
 
+const DELETE_CHUNK_SIZE = 500;
+
 export class ZrssDB extends Dexie {
   feeds!: Table<Feed, string>;
   articles!: Table<Article, string>;
@@ -130,7 +132,9 @@ function migrateSettings(raw: Record<string, unknown>): Partial<Settings> {
   return result as Partial<Settings>;
 }
 
-// 保存设置
+/**
+ * 保存全局设置。
+ */
 export async function saveSettings(settings: Partial<Settings>): Promise<Settings> {
   const current = await getSettings();
   const updated = { ...current, ...settings };
@@ -138,7 +142,9 @@ export async function saveSettings(settings: Partial<Settings>): Promise<Setting
   return updated;
 }
 
-// 更新未读数缓存
+/**
+ * 更新订阅源的未读数缓存。
+ */
 export async function updateUnreadCount(feedId: string): Promise<number> {
   const articles = await db.articles
     .where('feedId')
@@ -150,7 +156,24 @@ export async function updateUnreadCount(feedId: string): Promise<number> {
   return count;
 }
 
-// 清理旧文章
+/**
+ * 删除文章及其关联的 AI 摘要、翻译等缓存。
+ */
+export async function deleteArticlesWithAICache(articleIds: string[]): Promise<number> {
+  if (articleIds.length === 0) return 0;
+
+  for (let i = 0; i < articleIds.length; i += DELETE_CHUNK_SIZE) {
+    const chunk = articleIds.slice(i, i + DELETE_CHUNK_SIZE);
+    await db.aiCache.where('articleId').anyOf(chunk).delete();
+    await db.articles.bulkDelete(chunk);
+  }
+
+  return articleIds.length;
+}
+
+/**
+ * 按订阅源文章保留上限清理旧文章。
+ */
 export async function cleanupOldArticles(feedId: string, maxCount: number): Promise<number> {
   const allArticles = await db.articles
     .where('feedId')
@@ -166,11 +189,12 @@ export async function cleanupOldArticles(feedId: string, maxCount: number): Prom
 
   if (toDelete.length === 0) return 0;
 
-  await db.articles.bulkDelete(toDelete.map((a) => a.id));
-  return toDelete.length;
+  return deleteArticlesWithAICache(toDelete.map((a) => a.id));
 }
 
-// AI 缓存: 获取
+/**
+ * 获取文章的 AI 任务缓存。
+ */
 export async function getAICache(
   articleId: string,
   taskType: AITaskType
@@ -179,7 +203,9 @@ export async function getAICache(
   return db.aiCache.get(id);
 }
 
-// AI 缓存: 保存
+/**
+ * 保存文章的 AI 任务缓存。
+ */
 export async function setAICache(
   articleId: string,
   taskType: AITaskType,
