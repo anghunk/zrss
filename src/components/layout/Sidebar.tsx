@@ -9,12 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TooltipIconButton } from '@/components/common/TooltipIconButton';
 import {
-  FolderOpen,
   Rss,
   Star,
   Newspaper,
   Plus,
-  ChevronDown,
   ChevronRight,
   RefreshCw,
   CheckCheck,
@@ -227,7 +225,7 @@ export function Sidebar() {
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b p-3">
+      <div className="flex items-center justify-between border-b px-3 h-11">
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="ZRSS" className="h-6 w-6" />
           <span className="font-semibold">ZRSS</span>
@@ -363,8 +361,8 @@ export function Sidebar() {
                     }}
                   />
 
-                  {!collapsed &&
-                    folderFeeds.map((feed) => {
+                  <FolderFeedList collapsed={collapsed}>
+                    {folderFeeds.map((feed) => {
                       const zoneActive =
                         dropZone?.kind === 'feed-edge' && dropZone.feedId === feed.id;
                       return (
@@ -411,6 +409,7 @@ export function Sidebar() {
                         />
                       );
                     })}
+                  </FolderFeedList>
 
                   {/* Folder reorder edge below */}
                   {dragItem?.type === 'folder' && folderEdgeBelow && (
@@ -517,6 +516,36 @@ export function Sidebar() {
           setMarkAllConfirmOpen(false);
         }}
       />
+    </div>
+  );
+}
+
+/**
+ * 渲染分组下的订阅源列表，并为展开/收起提供高度与透明度过渡。
+ */
+function FolderFeedList({
+  collapsed,
+  children,
+}: {
+  collapsed: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      aria-hidden={collapsed}
+      className={cn(
+        'grid transition-[grid-template-rows,opacity] duration-200 ease-out',
+        collapsed ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100'
+      )}
+    >
+      <div
+        className={cn(
+          'min-h-0 overflow-hidden space-y-1',
+          collapsed ? 'pointer-events-none' : 'pt-1'
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -643,12 +672,12 @@ function FolderHeader({
       )}
       title="拖拽分组可调整顺序；将订阅源拖到分组上可移入该分组"
     >
-      {collapsed ? (
-        <ChevronRight className="h-3.5 w-3.5" />
-      ) : (
-        <ChevronDown className="h-3.5 w-3.5" />
-      )}
-      <FolderOpen className="h-4 w-4" />
+      <ChevronRight
+        className={cn(
+          'h-3.5 w-3.5 shrink-0 transition-transform duration-200 ease-out',
+          !collapsed && 'rotate-90'
+        )}
+      />
       <span className="flex-1 truncate">{folder.name}</span>
       {unreadCount > 0 && (
         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
