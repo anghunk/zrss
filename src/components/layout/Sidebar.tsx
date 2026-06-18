@@ -229,11 +229,6 @@ export function Sidebar() {
         <div className="flex items-center gap-2">
           <img src={logoImg} alt="ZRSS" className="h-6 w-6" />
           <span className="font-semibold">ZRSS</span>
-          {totalUnread > 0 && (
-            <Badge variant="secondary" className="ml-1 text-xs">
-              {totalUnread}
-            </Badge>
-          )}
         </div>
         <div className="flex gap-1">
           <TooltipIconButton

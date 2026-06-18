@@ -251,7 +251,6 @@ export function AIPanel({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">AI 分析</span>
-          <span className="text-xs text-muted-foreground">({aiConfig.name})</span>
         </div>
 
         <div className="ml-auto flex flex-wrap justify-end gap-2">

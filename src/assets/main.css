@@ -194,6 +194,53 @@
     opacity: 0;
     transform: scale(0.96);
   }
+
+  .article-list-transition-layer {
+    height: 100%;
+    width: 100%;
+    will-change: opacity, transform;
+  }
+
+  .article-list-transition-active {
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 10%,
+      #000 90%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      90deg,
+      transparent 0,
+      #000 10%,
+      #000 90%,
+      transparent 100%
+    );
+  }
+
+  .article-list-transition-leave-forward {
+    animation: article-list-leave-forward 140ms ease-in forwards;
+  }
+
+  .article-list-transition-leave-backward {
+    animation: article-list-leave-backward 140ms ease-in forwards;
+  }
+
+  .article-list-transition-enter-forward {
+    animation: article-list-enter-forward 180ms cubic-bezier(0.22, 1, 0.36, 1)
+      forwards;
+  }
+
+  .article-list-transition-enter-backward {
+    animation: article-list-enter-backward 180ms cubic-bezier(0.22, 1, 0.36, 1)
+      forwards;
+  }
+
+  .article-detail-enter {
+    animation: article-detail-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: opacity, transform;
+  }
 }
 
 @keyframes notification-toast-in {
@@ -205,5 +252,82 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes article-list-leave-forward {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+}
+
+@keyframes article-list-leave-backward {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+
+@keyframes article-list-enter-forward {
+  from {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes article-list-enter-backward {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes article-detail-enter {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .article-list-transition-leave-forward,
+  .article-list-transition-leave-backward,
+  .article-list-transition-enter-forward,
+  .article-list-transition-enter-backward,
+  .article-detail-enter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
+  .article-list-transition-active {
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 }

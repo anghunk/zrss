@@ -9,6 +9,9 @@ import { AIPanel } from '@/components/ai/AIPanel';
 import { detectLanguage, extractTextForDetection } from '@/lib/ai/detect-language';
 import { sanitizeHtml } from '@/utils/sanitize';
 
+/**
+ * 渲染当前选中文章的阅读详情区域。
+ */
 export function ArticleDetail() {
   const { selectedArticle, toggleStarred, markAsRead, markAsUnread } = useArticleStore();
   const { feeds } = useFeedStore();
@@ -112,7 +115,7 @@ export function ArticleDetail() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 select-text">
+      <div className="flex-1 overflow-y-auto px-6 py-4 pb-20 select-text">
         {/* AI 面板 */}
         <AIPanel
           article={article}
@@ -124,7 +127,10 @@ export function ArticleDetail() {
           setTranslation={setTranslation}
         />
 
-        <article className="prose prose-sm dark:prose-invert max-w-none">
+        <article
+          key={article.id}
+          className="article-detail-enter prose prose-sm dark:prose-invert max-w-none"
+        >
           <h1 className="text-xl font-bold leading-tight mb-2">{article.title}</h1>
           {article.author && (
             <p className="text-sm text-muted-foreground mb-4 not-prose">
