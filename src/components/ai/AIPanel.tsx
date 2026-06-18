@@ -17,6 +17,14 @@ interface AIPanelProps {
   onTranslate: (translation: string) => void;
   translation: string | null;
   setTranslation: (translation: string | null) => void;
+  /** 是否展示 AI 面板内容，隐藏时仍保留内部缓存和自动摘要逻辑。 */
+  visible?: boolean;
+  /** 外部触发 AI 分析的计数器，每次变化时尝试生成摘要。 */
+  analysisRequestKey?: number;
+  /** AI 配置可用性变化时通知父组件，用于控制工具栏入口显示。 */
+  onAvailabilityChange?: (available: boolean) => void;
+  /** 摘要内容可用性变化时通知父组件，用于决定是否默认展开面板。 */
+  onSummaryAvailabilityChange?: (available: boolean) => void;
 }
 
 // 解析摘要 JSON，失败时返回 null
@@ -61,6 +69,10 @@ export function AIPanel({
   onTranslate,
   translation,
   setTranslation,
+  visible = true,
+  analysisRequestKey = 0,
+  onAvailabilityChange,
+  onSummaryAvailabilityChange,
 }: AIPanelProps) {
   const [summaryRaw, setSummaryRaw] = useState<string | null>(null);
   const [summary, setSummary] = useState<SummaryData | null>(null);
@@ -89,6 +101,20 @@ export function AIPanel({
     };
     loadConfig();
   }, []);
+
+  /**
+   * 将 AI 功能是否可用同步给父组件。
+   */
+  useEffect(() => {
+    onAvailabilityChange?.(Boolean(aiEnabled && aiConfig));
+  }, [aiEnabled, aiConfig, onAvailabilityChange]);
+
+  /**
+   * 将当前文章是否已有摘要同步给父组件。
+   */
+  useEffect(() => {
+    onSummaryAvailabilityChange?.(Boolean(summaryRaw || summary));
+  }, [summaryRaw, summary, onSummaryAvailabilityChange]);
 
   // 当文章变化时，取消正在进行的请求并从缓存加载
   useEffect(() => {
@@ -235,8 +261,30 @@ export function AIPanel({
     }
   };
 
+  /**
+   * 从详情页工具栏打开 AI 面板时，自动开始生成摘要。
+   */
+  useEffect(() => {
+    if (
+      !visible ||
+      analysisRequestKey === 0 ||
+      summaryRaw ||
+      summaryLoading ||
+      translateLoading
+    ) {
+      return;
+    }
+
+    generateSummary(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisRequestKey, visible]);
+
   // 如果 AI 功能未启用或没有配置，不显示面板
   if (!aiEnabled || !aiConfig) {
+    return null;
+  }
+
+  if (!visible) {
     return null;
   }
 

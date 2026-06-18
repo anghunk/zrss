@@ -10,6 +10,7 @@ import {
   ExternalLink,
   FileText,
   Languages,
+  Sparkles,
   Star,
 } from 'lucide-react';
 import { AIPanel } from '@/components/ai/AIPanel';
@@ -38,6 +39,10 @@ export function ArticleDetail() {
   const [showTranslation, setShowTranslation] = useState(false);
   const [lang, setLang] = useState<'zh' | 'ja' | 'ko' | 'other'>('other');
   const [viewMode, setViewMode] = useState<ArticleViewMode>('rss');
+  const [showAIPanel, setShowAIPanel] = useState(false);
+  const [aiAvailable, setAIAvailable] = useState(false);
+  const [analysisRequestKey, setAnalysisRequestKey] = useState(0);
+  const [summaryAvailable, setSummaryAvailable] = useState(false);
 
   /**
    * 文章切换时重置翻译和阅读模式状态。
@@ -46,6 +51,9 @@ export function ArticleDetail() {
     setTranslation(null);
     setShowTranslation(false);
     setViewMode('rss');
+    setShowAIPanel(false);
+    setAnalysisRequestKey(0);
+    setSummaryAvailable(false);
     if (selectedArticle) {
       const text = extractTextForDetection(selectedArticle.content);
       setLang(detectLanguage(text));
@@ -54,6 +62,15 @@ export function ArticleDetail() {
 
   const isForeign = lang !== 'zh';
   const hasTranslation = translation !== null;
+
+  /**
+   * 有摘要缓存的文章默认展开 AI 面板，但之后仍由顶部按钮自由切换。
+   */
+  useEffect(() => {
+    if (summaryAvailable) {
+      setShowAIPanel(true);
+    }
+  }, [summaryAvailable]);
 
   const displayContent = useMemo(() => {
     if (!selectedArticle) return '';
@@ -98,6 +115,22 @@ export function ArticleDetail() {
               tooltip={showTranslation ? '显示原文' : '显示译文'}
             >
               <Languages className="h-4 w-4" />
+            </TooltipIconButton>
+          )}
+          {aiAvailable && !isOriginalView && (
+            <TooltipIconButton
+              className={showAIPanel && 'bg-accent text-accent-foreground'}
+              onClick={() => {
+                const nextVisible = !showAIPanel;
+                setShowAIPanel(nextVisible);
+                if (nextVisible) {
+                  setAnalysisRequestKey((key) => key + 1);
+                }
+              }}
+              ariaLabel={showAIPanel ? '收起 AI 分析' : 'AI 分析'}
+              tooltip={showAIPanel ? '收起 AI 分析' : 'AI 分析'}
+            >
+              <Sparkles className="h-4 w-4" />
             </TooltipIconButton>
           )}
           <TooltipIconButton
@@ -178,6 +211,10 @@ export function ArticleDetail() {
             }}
             translation={translation}
             setTranslation={setTranslation}
+            visible={showAIPanel}
+            analysisRequestKey={analysisRequestKey}
+            onAvailabilityChange={setAIAvailable}
+            onSummaryAvailabilityChange={setSummaryAvailable}
           />
 
           <article
