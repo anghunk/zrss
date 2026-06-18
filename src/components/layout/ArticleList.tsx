@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useArticleStore } from '@/stores/articleStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useNotificationStore } from '@/stores/notificationStore';
@@ -8,43 +8,79 @@ import { TooltipIconButton } from '@/components/common/TooltipIconButton';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/utils/date';
 import { CheckCheck, Circle, RefreshCw, Star } from 'lucide-react';
-import type { Article } from '@/types';
+import type { Article, FilterType } from '@/types';
 
 const ALL_ARTICLES_VIEW_KEY = '__all__';
 const STARRED_ARTICLES_VIEW_KEY = '__starred__';
+const ARTICLE_VIEW_KEY_SEPARATOR = '::';
+const ARTICLE_FILTER_ORDER: FilterType[] = ['all', 'unread', 'starred'];
 const ARTICLE_LIST_EXIT_MS = 140;
 const ARTICLE_LIST_ENTER_MS = 180;
+const ARTICLE_PAGE_SIZE = 20;
+const ARTICLE_LOAD_MORE_ROOT_MARGIN = '160px';
 
 type ArticleListTransitionStage = 'idle' | 'leaving' | 'entering';
 type ArticleListTransitionDirection = 'forward' | 'backward';
 
 /**
- * 生成文章列表视图键，用于识别订阅源切换。
+ * 生成文章列表视图键，用于识别订阅源或筛选条件切换。
  */
-function getArticleViewKey(selectedFeedId: string | null) {
-  return selectedFeedId ?? ALL_ARTICLES_VIEW_KEY;
+function getArticleViewKey(selectedFeedId: string | null, filter: FilterType) {
+  return `${selectedFeedId ?? ALL_ARTICLES_VIEW_KEY}${ARTICLE_VIEW_KEY_SEPARATOR}${filter}`;
 }
 
 /**
- * 获取视图键在侧边栏阅读区中的相对位置。
+ * 从文章列表视图键中解析订阅源与筛选条件。
  */
-function getArticleViewPosition(viewKey: string, feedOrder: string[]) {
-  const index = feedOrder.indexOf(viewKey);
+function parseArticleViewKey(viewKey: string) {
+  const [sourceKey, filter = 'all'] = viewKey.split(ARTICLE_VIEW_KEY_SEPARATOR);
+
+  return {
+    sourceKey,
+    filter: filter as FilterType,
+  };
+}
+
+/**
+ * 获取订阅源视图键在侧边栏阅读区中的相对位置。
+ */
+function getArticleSourcePosition(sourceKey: string, feedOrder: string[]) {
+  const index = feedOrder.indexOf(sourceKey);
   return index === -1 ? feedOrder.length : index;
 }
 
 /**
- * 根据订阅源顺序判断列表切换动画方向。
+ * 获取筛选条件在顶部标签中的相对位置。
+ */
+function getArticleFilterPosition(filter: FilterType) {
+  const index = ARTICLE_FILTER_ORDER.indexOf(filter);
+  return index === -1 ? 0 : index;
+}
+
+/**
+ * 根据订阅源顺序和顶部筛选顺序判断列表切换动画方向。
  */
 function getArticleListTransitionDirection(
   previousViewKey: string,
   nextViewKey: string,
   feedOrder: string[]
 ): ArticleListTransitionDirection {
-  const previousPosition = getArticleViewPosition(previousViewKey, feedOrder);
-  const nextPosition = getArticleViewPosition(nextViewKey, feedOrder);
+  const previousView = parseArticleViewKey(previousViewKey);
+  const nextView = parseArticleViewKey(nextViewKey);
+  const previousSourcePosition = getArticleSourcePosition(
+    previousView.sourceKey,
+    feedOrder
+  );
+  const nextSourcePosition = getArticleSourcePosition(nextView.sourceKey, feedOrder);
 
-  return nextPosition >= previousPosition ? 'forward' : 'backward';
+  if (nextSourcePosition !== previousSourcePosition) {
+    return nextSourcePosition >= previousSourcePosition ? 'forward' : 'backward';
+  }
+
+  return getArticleFilterPosition(nextView.filter) >=
+    getArticleFilterPosition(previousView.filter)
+    ? 'forward'
+    : 'backward';
 }
 
 /**
@@ -56,6 +92,7 @@ export function ArticleList() {
     loading,
     selectedArticle,
     selectedFeedId,
+    filter,
     setSelectedArticle,
     markFeedAsRead,
     loadArticles,
@@ -69,13 +106,14 @@ export function ArticleList() {
   const [transitionDirection, setTransitionDirection] =
     useState<ArticleListTransitionDirection>('forward');
   const [transitionReadyToSwap, setTransitionReadyToSwap] = useState(false);
+  const [visibleArticleCount, setVisibleArticleCount] = useState(ARTICLE_PAGE_SIZE);
 
   const feedMap = new Map(feeds.map((f) => [f.id, f]));
   const selectedFeed = feeds.find((feed) => feed.id === selectedFeedId);
   const isRefreshingSelectedFeed = selectedFeed
     ? refreshingFeedIds.includes(selectedFeed.id)
     : false;
-  const articleViewKey = getArticleViewKey(selectedFeedId);
+  const articleViewKey = getArticleViewKey(selectedFeedId, filter);
   const feedOrder = useMemo(
     () => [
       STARRED_ARTICLES_VIEW_KEY,
@@ -89,6 +127,32 @@ export function ArticleList() {
   const pendingViewKeyRef = useRef(articleViewKey);
   const exitTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const enterTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+  const visibleArticles = useMemo(
+    () => displayedArticles.slice(0, visibleArticleCount),
+    [displayedArticles, visibleArticleCount]
+  );
+  const hasMoreArticles = visibleArticleCount < displayedArticles.length;
+
+  /**
+   * 追加下一批文章卡片的渲染数量。
+   */
+  const loadMoreArticles = useCallback(() => {
+    setVisibleArticleCount((count) =>
+      Math.min(count + ARTICLE_PAGE_SIZE, displayedArticles.length)
+    );
+  }, [displayedArticles.length]);
+
+  /**
+   * 将文章列表滚动位置重置到顶部。
+   */
+  const scrollArticleListToTop = useCallback(() => {
+    const viewport = scrollAreaRef.current?.querySelector<HTMLElement>(
+      '[data-radix-scroll-area-viewport]'
+    );
+    viewport?.scrollTo({ top: 0 });
+  }, []);
 
   useEffect(() => {
     latestArticlesRef.current = articles;
@@ -104,6 +168,7 @@ export function ArticleList() {
 
     pendingViewKeyRef.current = articleViewKey;
     previousViewKeyRef.current = articleViewKey;
+    scrollArticleListToTop();
     setTransitionReadyToSwap(false);
     setTransitionDirection(
       getArticleListTransitionDirection(previousViewKey, articleViewKey, feedOrder)
@@ -113,7 +178,7 @@ export function ArticleList() {
     exitTimerRef.current = window.setTimeout(() => {
       setTransitionReadyToSwap(true);
     }, ARTICLE_LIST_EXIT_MS);
-  }, [articleViewKey, feedOrder]);
+  }, [articleViewKey, feedOrder, scrollArticleListToTop]);
 
   useEffect(() => {
     if (!transitionReadyToSwap || loading || pendingViewKeyRef.current !== articleViewKey) {
@@ -123,6 +188,8 @@ export function ArticleList() {
     if (enterTimerRef.current) window.clearTimeout(enterTimerRef.current);
 
     setDisplayedArticles(latestArticlesRef.current);
+    setVisibleArticleCount(ARTICLE_PAGE_SIZE);
+    requestAnimationFrame(scrollArticleListToTop);
     setTransitionReadyToSwap(false);
     setTransitionStage('entering');
 
@@ -131,7 +198,7 @@ export function ArticleList() {
         setTransitionStage('idle');
       }
     }, ARTICLE_LIST_ENTER_MS);
-  }, [articleViewKey, articles, loading, transitionReadyToSwap]);
+  }, [articleViewKey, articles, loading, scrollArticleListToTop, transitionReadyToSwap]);
 
   useEffect(() => {
     if (transitionStage !== 'idle' || pendingViewKeyRef.current !== articleViewKey) {
@@ -139,7 +206,36 @@ export function ArticleList() {
     }
 
     setDisplayedArticles(articles);
+    setVisibleArticleCount((count) =>
+      Math.min(Math.max(count, ARTICLE_PAGE_SIZE), articles.length)
+    );
   }, [articleViewKey, articles, transitionStage]);
+
+  useEffect(() => {
+    if (!hasMoreArticles || transitionStage !== 'idle') return;
+
+    const sentinel = loadMoreSentinelRef.current;
+    const scrollRoot = sentinel?.closest('[data-radix-scroll-area-viewport]');
+    if (!sentinel || !scrollRoot) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          loadMoreArticles();
+        }
+      },
+      {
+        root: scrollRoot,
+        rootMargin: ARTICLE_LOAD_MORE_ROOT_MARGIN,
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMoreArticles, loadMoreArticles, transitionStage, visibleArticles.length]);
 
   useEffect(() => {
     return () => {
@@ -240,9 +336,9 @@ export function ArticleList() {
               </div>
             </div>
           ) : (
-            <ScrollArea className="h-full w-full">
+            <ScrollArea ref={scrollAreaRef} className="h-full w-full">
               <div className="w-full divide-y overflow-hidden">
-                {displayedArticles.map((article) => {
+                {visibleArticles.map((article) => {
                   const feed = feedMap.get(article.feedId);
                   const isSelected = selectedArticle?.id === article.id;
 
@@ -257,6 +353,13 @@ export function ArticleList() {
                     />
                   );
                 })}
+                {hasMoreArticles && (
+                  <div
+                    ref={loadMoreSentinelRef}
+                    className="h-10 border-t border-transparent"
+                    aria-hidden="true"
+                  />
+                )}
               </div>
             </ScrollArea>
           )}

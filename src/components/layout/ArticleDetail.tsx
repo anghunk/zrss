@@ -56,7 +56,7 @@ export function ArticleDetail() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-6 h-11">
+      <div className="flex items-center justify-between px-6 h-11">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {feed?.favicon && (
             <img src={feed.favicon} alt="" className="h-4 w-4 rounded-sm" />

@@ -4,6 +4,7 @@ import { useFeedStore } from '@/stores/feedStore';
 import { useArticleStore } from '@/stores/articleStore';
 import { useUIStore } from '@/stores/uiStore';
 import type { AppPage } from '@/stores/uiStore';
+import type { MessageType } from '@/types';
 
 // 从 hash 中提取 ?add=<url> 参数。
 // 支持的格式：
@@ -30,6 +31,17 @@ function parseAddParamFromHash(): { page: AppPage | null; addUrl: string | null 
   return { page, addUrl };
 }
 
+/**
+ * 通知后台获取全部订阅源。
+ */
+async function requestFetchFeeds() {
+  try {
+    await browser.runtime.sendMessage({ type: 'FETCH_FEEDS' } satisfies MessageType);
+  } catch {
+    // 后台 Service Worker 暂未激活或页面卸载时忽略。
+  }
+}
+
 export function App() {
   const { loadFeeds } = useFeedStore();
   const { loadArticles } = useArticleStore();
@@ -53,6 +65,11 @@ export function App() {
         );
       }
     }
+  }, []);
+
+  // 页面刷新或首次打开阅读器时，触发一次后台全量获取订阅源。
+  useEffect(() => {
+    requestFetchFeeds();
   }, []);
 
   // 监听来自 background 的消息

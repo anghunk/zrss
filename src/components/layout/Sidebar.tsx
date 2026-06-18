@@ -24,6 +24,8 @@ import { cn } from '@/lib/utils';
 import type { Feed, Folder as FolderType } from '@/types';
 import logoImg from '@/assets/logo.png';
 
+const COLLAPSED_FOLDERS_STORAGE_KEY = 'zrss:collapsed-folders';
+
 // ---- drag state ----
 type DragItem =
   | { type: 'feed'; id: string }
@@ -34,6 +36,40 @@ type DropZone =
   | { kind: 'root' }
   | { kind: 'feed-edge'; feedId: string; position: 'before' | 'after' }
   | { kind: 'folder-edge'; folderId: string; position: 'before' | 'after' };
+
+/**
+ * 从本地存储读取已收起的订阅源文件夹 ID。
+ */
+function loadCollapsedFolderIds() {
+  try {
+    const value = localStorage.getItem(COLLAPSED_FOLDERS_STORAGE_KEY);
+    if (!value) return new Set<string>();
+
+    const folderIds = JSON.parse(value);
+    if (!Array.isArray(folderIds)) return new Set<string>();
+
+    return new Set(
+      folderIds.filter((folderId): folderId is string => typeof folderId === 'string')
+    );
+  } catch {
+    // localStorage 不可用或数据损坏时回退为全部展开。
+    return new Set<string>();
+  }
+}
+
+/**
+ * 将已收起的订阅源文件夹 ID 写入本地存储。
+ */
+function persistCollapsedFolderIds(folderIds: Set<string>) {
+  try {
+    localStorage.setItem(
+      COLLAPSED_FOLDERS_STORAGE_KEY,
+      JSON.stringify(Array.from(folderIds))
+    );
+  } catch {
+    // localStorage 不可用时忽略，界面状态仍在当前会话中生效。
+  }
+}
 
 export function Sidebar() {
   const {
@@ -48,7 +84,8 @@ export function Sidebar() {
   const { selectedFeedId, setSelectedFeedId, markAllAsRead } = useArticleStore();
   const { setAddFeedOpen, setPage, currentPage } = useUIStore();
   const showNotification = useNotificationStore((state) => state.showNotification);
-  const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [collapsedFolders, setCollapsedFolders] =
+    useState<Set<string>>(loadCollapsedFolderIds);
   const [dragItem, setDragItem] = useState<DragItem | null>(null);
   const [dropZone, setDropZone] = useState<DropZone | null>(null);
   const [markAllConfirmOpen, setMarkAllConfirmOpen] = useState(false);
@@ -83,6 +120,7 @@ export function Sidebar() {
       } else {
         next.add(folderId);
       }
+      persistCollapsedFolderIds(next);
       return next;
     });
   };
