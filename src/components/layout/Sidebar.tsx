@@ -7,12 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { TooltipIconButton } from '@/components/common/TooltipIconButton';
 import {
   FolderOpen,
   Rss,
@@ -242,43 +237,25 @@ export function Sidebar() {
             </Badge>
           )}
         </div>
-        <TooltipProvider delayDuration={200}>
-          <div className="flex gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={handleRefreshAll}
-                  disabled={loading}
-                  aria-label={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
-                >
-                  <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="end">
-                {loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setMarkAllConfirmOpen(true)}
-                  aria-label="将全部未读文章标记为已读"
-                >
-                  <CheckCheck className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" align="end">
-                将全部未读文章标记为已读
-              </TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
+        <div className="flex gap-1">
+          <TooltipIconButton
+            onClick={handleRefreshAll}
+            disabled={loading}
+            ariaLabel={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+            tooltip={loading ? '正在刷新全部订阅源' : '一键刷新全部订阅源'}
+            tooltipAlign="end"
+          >
+            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+          </TooltipIconButton>
+          <TooltipIconButton
+            onClick={() => setMarkAllConfirmOpen(true)}
+            ariaLabel="将全部未读文章标记为已读"
+            tooltip="将全部未读文章标记为已读"
+            tooltipAlign="end"
+          >
+            <CheckCheck className="h-4 w-4" />
+          </TooltipIconButton>
+        </div>
       </div>
 
       <ScrollArea className="flex-1">

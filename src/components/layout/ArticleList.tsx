@@ -3,14 +3,8 @@ import { useArticleStore } from '@/stores/articleStore';
 import { useFeedStore } from '@/stores/feedStore';
 import { useNotificationStore } from '@/stores/notificationStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { TooltipIconButton } from '@/components/common/TooltipIconButton';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/utils/date';
 import { CheckCheck, Circle, RefreshCw, Star } from 'lucide-react';
@@ -78,44 +72,26 @@ export function ArticleList() {
           <div className="min-w-0 text-sm font-medium">
             <span className="block truncate">{selectedFeed.title}</span>
           </div>
-          <TooltipProvider delayDuration={200}>
-            <div className="flex shrink-0 gap-1">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={handleRefreshSelectedFeed}
-                    disabled={loading}
-                    aria-label={loading ? '正在刷新本订阅源' : '刷新本订阅源'}
-                  >
-                    <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="end">
-                  {loading ? '正在刷新本订阅源' : '刷新本订阅源'}
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setMarkFeedConfirmOpen(true)}
-                    disabled={selectedFeed.unreadCount === 0}
-                    aria-label="将本订阅源文章全部设为已读"
-                  >
-                    <CheckCheck className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" align="end">
-                  将本订阅源文章全部设为已读
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          </TooltipProvider>
+          <div className="flex shrink-0 gap-1">
+            <TooltipIconButton
+              onClick={handleRefreshSelectedFeed}
+              disabled={loading}
+              ariaLabel={loading ? '正在刷新本订阅源' : '刷新本订阅源'}
+              tooltip={loading ? '正在刷新本订阅源' : '刷新本订阅源'}
+              tooltipAlign="end"
+            >
+              <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} />
+            </TooltipIconButton>
+            <TooltipIconButton
+              onClick={() => setMarkFeedConfirmOpen(true)}
+              disabled={selectedFeed.unreadCount === 0}
+              ariaLabel="将本订阅源文章全部设为已读"
+              tooltip="将本订阅源文章全部设为已读"
+              tooltipAlign="end"
+            >
+              <CheckCheck className="h-4 w-4" />
+            </TooltipIconButton>
+          </div>
         </div>
       )}
 

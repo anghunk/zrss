@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useArticleStore } from '@/stores/articleStore';
 import { useFeedStore } from '@/stores/feedStore';
-import { Button } from '@/components/ui/button';
+import { TooltipIconButton } from '@/components/common/TooltipIconButton';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/utils/date';
 import { Star, ExternalLink, CheckCircle, Circle, Languages } from 'lucide-react';
@@ -65,25 +65,19 @@ export function ArticleDetail() {
         <div className="flex items-center gap-1">
           {/* 翻译切换按钮 (仅外文且有翻译时显示) */}
           {isForeign && hasTranslation && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                'h-8 w-8',
-                showTranslation && 'bg-accent text-accent-foreground'
-              )}
+            <TooltipIconButton
+              className={showTranslation && 'bg-accent text-accent-foreground'}
               onClick={() => setShowTranslation(!showTranslation)}
-              title={showTranslation ? '显示原文' : '显示译文'}
+              ariaLabel={showTranslation ? '显示原文' : '显示译文'}
+              tooltip={showTranslation ? '显示原文' : '显示译文'}
             >
               <Languages className="h-4 w-4" />
-            </Button>
+            </TooltipIconButton>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+          <TooltipIconButton
             onClick={() => toggleStarred(article.id)}
-            title={article.isStarred ? '取消星标' : '添加星标'}
+            ariaLabel={article.isStarred ? '取消星标' : '添加星标'}
+            tooltip={article.isStarred ? '取消星标' : '添加星标'}
           >
             <Star
               className={cn(
@@ -91,32 +85,28 @@ export function ArticleDetail() {
                 article.isStarred && 'fill-amber-500 text-amber-500'
               )}
             />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
+          </TooltipIconButton>
+          <TooltipIconButton
             onClick={() =>
               article.isRead ? markAsUnread(article.id) : markAsRead(article.id)
             }
-            title={article.isRead ? '标记为未读' : '标记为已读'}
+            ariaLabel={article.isRead ? '标记为未读' : '标记为已读'}
+            tooltip={article.isRead ? '标记为未读' : '标记为已读'}
           >
             {article.isRead ? (
               <CheckCircle className="h-4 w-4" />
             ) : (
               <Circle className="h-4 w-4" />
             )}
-          </Button>
+          </TooltipIconButton>
           {article.link && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
+            <TooltipIconButton
               onClick={() => window.open(article.link, '_blank')}
-              title="打开原文"
+              ariaLabel="打开原文"
+              tooltip="打开原文"
             >
               <ExternalLink className="h-4 w-4" />
-            </Button>
+            </TooltipIconButton>
           )}
         </div>
       </div>
