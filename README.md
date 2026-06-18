@@ -4,7 +4,7 @@
 
 ZRSS 是一款现代浏览器 RSS 阅读器：自动发现订阅源，集中管理信息流，用 AI 快速提炼重点，并把数据留在你自己的浏览器里。
 
-![](https://github.com/user-attachments/assets/bd282f96-9de8-4a63-96ab-a95dfb8e8310)
+![](https://github.com/user-attachments/assets/a8f1ab98-769b-48b7-8edf-4ac94fa1030c)
 
 ## 亮点
 
