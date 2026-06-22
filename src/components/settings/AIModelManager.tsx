@@ -208,7 +208,7 @@ function AddProviderDialog({
                       key={preset.id}
                       className={`flex min-h-[84px] flex-col items-start justify-between rounded-md border p-3 text-left transition-colors ${
                         selectedPresetId === preset.id
-                          ? 'border-primary bg-primary/10 text-primary'
+                          ? 'border-brand bg-brand-soft text-brand'
                           : 'border-input hover:bg-muted'
                       }`}
                       onClick={() => setSelectedPresetId(preset.id)}
@@ -486,7 +486,9 @@ export function AIModelManager() {
                   <div
                     key={id}
                     className={`flex items-center justify-between gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-                      isSelected ? 'bg-accent' : 'hover:bg-muted'
+                      isSelected
+                        ? 'bg-brand-soft text-brand dark:bg-brand-soft/45'
+                        : 'hover:bg-muted'
                     }`}
                     onClick={() => setSelectedProviderId(id)}
                   >
@@ -695,7 +697,7 @@ export function AIModelManager() {
               {testResult && (
                 <div
                   className={`text-sm ${
-                    testResult.success ? 'text-green-600' : 'text-red-600'
+                    testResult.success ? 'text-success' : 'text-destructive'
                   }`}
                 >
                   {testResult.message}

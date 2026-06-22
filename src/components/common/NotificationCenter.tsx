@@ -24,20 +24,20 @@ const notificationStyles: Record<
   }
 > = {
   success: {
-    icon: <CheckCircle2 className="h-4 w-4" />,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-950',
+    icon: <CheckCircle2 className="h-4 w-4 text-success" />,
+    className: 'border-success/20 bg-success/10 text-foreground',
   },
   error: {
-    icon: <AlertCircle className="h-4 w-4" />,
-    className: 'border-red-200 bg-red-50 text-red-950',
+    icon: <AlertCircle className="h-4 w-4 text-destructive" />,
+    className: 'border-destructive/20 bg-destructive/10 text-foreground',
   },
   warning: {
-    icon: <AlertTriangle className="h-4 w-4" />,
-    className: 'border-amber-200 bg-amber-50 text-amber-950',
+    icon: <AlertTriangle className="h-4 w-4 text-warning" />,
+    className: 'border-warning/25 bg-warning/10 text-foreground',
   },
   info: {
-    icon: <Info className="h-4 w-4" />,
-    className: 'border-sky-200 bg-sky-50 text-sky-950',
+    icon: <Info className="h-4 w-4 text-brand" />,
+    className: 'border-brand/20 bg-brand-soft text-foreground',
   },
   loading: {
     icon: <Loader2 className="h-4 w-4 animate-spin" />,

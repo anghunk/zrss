@@ -337,7 +337,7 @@ export function ArticleList() {
             </div>
           ) : (
             <ScrollArea ref={scrollAreaRef} className="h-full w-full">
-              <div className="w-full divide-y overflow-hidden">
+              <div className="w-full overflow-hidden">
                 {visibleArticles.map((article) => {
                   const feed = feedMap.get(article.feedId);
                   const isSelected = selectedArticle?.id === article.id;
@@ -398,9 +398,11 @@ function ArticleCard({
   return (
     <div
       className={cn(
-        'flex cursor-pointer flex-col gap-1 pl-3 pr-4 py-3 transition-colors',
-        selected ? 'bg-accent' : 'hover:bg-accent/50',
-        article.isRead && 'opacity-60'
+        'flex cursor-pointer flex-col gap-1 border-b border-l-2 py-3 pl-3 pr-4 transition-colors',
+        selected
+          ? 'border-b-transparent border-l-brand bg-brand-soft text-foreground dark:bg-brand-soft/45'
+          : 'border-b-border border-l-transparent hover:bg-accent/60',
+        article.isRead && !selected && 'opacity-70'
       )}
       onClick={onClick}
     >
@@ -408,7 +410,7 @@ function ArticleCard({
         {/* Read indicator */}
         <div className="mt-2 shrink-0">
           {!article.isRead ? (
-            <Circle className="h-2 w-2 fill-orange-500 text-orange-500" />
+            <Circle className="h-2 w-2 fill-brand text-brand" />
           ) : (
             <Circle className="h-2 w-2 text-transparent" />
           )}
@@ -416,19 +418,19 @@ function ArticleCard({
 
         <div className="flex-1 min-w-0">
           {/* Title */}
-          <h3 className="text-base leading-snug line-clamp-2 font-normal text-foreground">
+          <h3 className="line-clamp-2 text-[15px] font-normal leading-5 text-foreground">
             {article.title}
           </h3>
 
           {/* Snippet */}
           {article.contentSnippet && (
-            <p className="mt-0.5 text-sm text-muted-foreground line-clamp-2">
+            <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
               {article.contentSnippet}
             </p>
           )}
 
           {/* Meta */}
-          <div className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               {feedFavicon ? (
                 <img src={feedFavicon} alt="" className="h-3 w-3 rounded-sm" />
@@ -440,7 +442,7 @@ function ArticleCard({
             {article.isStarred && (
               <>
                 <span>·</span>
-                <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                <Star className="h-3 w-3 fill-warning text-warning" />
               </>
             )}
           </div>

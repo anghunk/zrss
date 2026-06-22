@@ -27,7 +27,9 @@ interface AIPanelProps {
   onSummaryAvailabilityChange?: (available: boolean) => void;
 }
 
-// 解析摘要 JSON，失败时返回 null
+/**
+ * 解析 AI 返回的摘要 JSON，失败时返回 null。
+ */
 function parseSummary(raw: string): SummaryData | null {
   try {
     // 尝试直接解析
@@ -144,7 +146,9 @@ export function AIPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [article.id, setTranslation, aiEnabled, aiConfig, autoSummarize]);
 
-  // 生成摘要
+  /**
+   * 生成当前文章摘要，并按需跳过已有缓存。
+   */
   const generateSummary = async (forceRefresh = false) => {
     if (!aiEnabled || !aiConfig) return;
 
@@ -208,7 +212,9 @@ export function AIPanel({
     }
   };
 
-  // 翻译文章
+  /**
+   * 将当前文章翻译为中文，并优先读取本地缓存。
+   */
   const translateArticle = async () => {
     if (!aiEnabled || !aiConfig) return;
 
@@ -294,10 +300,10 @@ export function AIPanel({
     : /[a-zA-Z]{3,}/.test(article.title);
 
   return (
-    <div className="mb-4 rounded-lg border bg-muted/30 p-3">
+    <div className="mb-5 rounded-md border border-ai/20 bg-ai/5 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <Sparkles className="h-4 w-4 text-ai" />
           <span className="text-sm font-medium">AI 分析</span>
         </div>
 
@@ -313,7 +319,7 @@ export function AIPanel({
             {summaryLoading ? (
               <>
                 <RefreshCw className="h-3 w-3 animate-spin" />
-                生成中...
+                生成中…
               </>
             ) : summary ? (
               <>
@@ -340,7 +346,7 @@ export function AIPanel({
               {translateLoading ? (
                 <>
                   <RefreshCw className="h-3 w-3 animate-spin" />
-                  翻译中...
+                  翻译中…
                 </>
               ) : translation ? (
                 <>
@@ -359,25 +365,25 @@ export function AIPanel({
       </div>
 
       {error && (
-        <div className="mb-2 p-2 rounded bg-destructive/10 text-destructive text-xs">
+        <div className="mb-2 rounded-md bg-destructive/10 p-2 text-xs text-destructive">
           {error}
         </div>
       )}
 
       {/* 摘要显示 */}
       {summaryRaw && !summary && (
-        <div className="mt-3 p-3 rounded-lg bg-background border text-sm">
+        <div className="mt-3 rounded-md border bg-background p-3 text-sm">
           <div className="whitespace-pre-wrap text-muted-foreground">{summaryRaw}</div>
         </div>
       )}
 
       {summary && (
-        <div className="mt-3 p-3 rounded-lg bg-background border space-y-3">
+        <div className="mt-3 space-y-3 rounded-md border bg-background p-3">
           {/* TL;DR */}
           <div className="flex gap-2">
             <div className="flex-shrink-0 mt-0.5">
-              <div className="flex items-center justify-center h-5 w-5 rounded-full bg-amber-100 dark:bg-amber-900/30">
-                <Lightbulb className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-warning/15">
+                <Lightbulb className="h-3 w-3 text-warning" />
               </div>
             </div>
             <div className="flex-1">
@@ -388,11 +394,11 @@ export function AIPanel({
           {/* 要点 */}
           {summary.keyPoints.length > 0 && (
             <div className="pt-2 border-t">
-              <div className="text-xs font-medium text-muted-foreground mb-2">要点</div>
+              <div className="mb-2 text-xs font-medium text-muted-foreground">要点</div>
               <ul className="space-y-1.5">
                 {summary.keyPoints.map((point, index) => (
                   <li key={index} className="flex gap-2 text-sm">
-                    <span className="flex-shrink-0 flex items-center justify-center h-4 w-4 rounded-full bg-primary/10 text-[10px] font-bold text-primary mt-0.5">
+                    <span className="mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-brand-soft text-[10px] font-bold text-brand">
                       {index + 1}
                     </span>
                     <span className="flex-1 leading-relaxed">{point}</span>

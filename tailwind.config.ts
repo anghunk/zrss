@@ -47,11 +47,19 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        brand: {
+          DEFAULT: 'hsl(var(--brand))',
+          foreground: 'hsl(var(--brand-foreground))',
+          soft: 'hsl(var(--brand-soft))',
+        },
+        success: 'hsl(var(--success))',
+        warning: 'hsl(var(--warning))',
+        ai: 'hsl(var(--ai))',
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
+        lg: '12px',
+        md: 'var(--radius)',
+        sm: 'var(--radius)',
       },
       typography: {
         DEFAULT: {

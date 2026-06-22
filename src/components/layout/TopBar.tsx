@@ -31,7 +31,7 @@ export function TopBar() {
               <div className="flex items-center gap-2">
                 <Input
                   autoFocus
-                  placeholder="搜索文章..."
+                  placeholder="搜索文章…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-8"
@@ -46,7 +46,7 @@ export function TopBar() {
                 onClick={() => setSearchOpen(true)}
               >
                 <Search className="h-4 w-4" />
-                <span>搜索...</span>
+                <span>搜索…</span>
               </Button>
             )}
           </div>

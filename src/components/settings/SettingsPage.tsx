@@ -157,7 +157,7 @@ export function SettingsPage() {
               className={cn(
                 'flex w-full items-center gap-2 rounded-md px-3 py-2 text-[15px] transition-colors',
                 activeSection === section.id
-                  ? 'bg-accent text-accent-foreground font-medium'
+                  ? 'bg-brand-soft font-medium text-brand dark:bg-brand-soft/45'
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
               )}
             >
@@ -453,7 +453,7 @@ export function SettingsPage() {
                                       <Button
                                         variant="outline"
                                         size="icon"
-                                        className="h-8 w-8 text-red-500 hover:text-red-600"
+                                        className="h-8 w-8 text-destructive hover:text-destructive"
                                         disabled={deletingFile === file}
                                         onClick={async () => {
                                           if (!confirm(`确定删除备份 ${file}？`)) return;

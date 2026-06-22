@@ -96,7 +96,7 @@ export function ArticleDetail() {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 h-11">
+      <div className="flex h-11 items-center justify-between border-b px-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {feed?.favicon && (
             <img src={feed.favicon} alt="" className="h-4 w-4 rounded-sm" />
@@ -109,7 +109,7 @@ export function ArticleDetail() {
           {/* 翻译切换按钮 (仅外文且有翻译时显示) */}
           {isForeign && hasTranslation && (
             <TooltipIconButton
-              className={showTranslation && 'bg-accent text-accent-foreground'}
+              className={showTranslation && 'bg-brand-soft text-brand'}
               onClick={() => setShowTranslation(!showTranslation)}
               ariaLabel={showTranslation ? '显示原文' : '显示译文'}
               tooltip={showTranslation ? '显示原文' : '显示译文'}
@@ -119,7 +119,7 @@ export function ArticleDetail() {
           )}
           {aiAvailable && !isOriginalView && (
             <TooltipIconButton
-              className={showAIPanel && 'bg-accent text-accent-foreground'}
+              className={showAIPanel && 'bg-brand-soft text-brand'}
               onClick={() => {
                 const nextVisible = !showAIPanel;
                 setShowAIPanel(nextVisible);
@@ -141,7 +141,7 @@ export function ArticleDetail() {
             <Star
               className={cn(
                 'h-4 w-4',
-                article.isStarred && 'fill-amber-500 text-amber-500'
+                article.isStarred && 'fill-warning text-warning'
               )}
             />
           </TooltipIconButton>
@@ -160,7 +160,7 @@ export function ArticleDetail() {
           </TooltipIconButton>
           {article.link && (
             <TooltipIconButton
-              className={isOriginalView && 'bg-accent text-accent-foreground'}
+              className={isOriginalView && 'bg-brand-soft text-brand'}
               onClick={() => setViewMode(isOriginalView ? 'rss' : 'original')}
               ariaLabel={isOriginalView ? '取消查看原网址' : '查看原网址'}
               tooltip={isOriginalView ? '取消查看原网址' : '查看原网址'}
@@ -201,29 +201,31 @@ export function ArticleDetail() {
         </div>
       ) : (
         /* Content */
-        <div className="flex-1 overflow-y-auto px-6 py-4 pb-20 select-text">
+        <div className="flex-1 overflow-y-auto px-6 py-6 pb-20 select-text">
           {/* AI 面板 */}
-          <AIPanel
-            article={article}
-            onTranslate={(html) => {
-              setTranslation(html);
-              setShowTranslation(true);
-            }}
-            translation={translation}
-            setTranslation={setTranslation}
-            visible={showAIPanel}
-            analysisRequestKey={analysisRequestKey}
-            onAvailabilityChange={setAIAvailable}
-            onSummaryAvailabilityChange={setSummaryAvailable}
-          />
+          <div className="mx-auto w-full max-w-[720px]">
+            <AIPanel
+              article={article}
+              onTranslate={(html) => {
+                setTranslation(html);
+                setShowTranslation(true);
+              }}
+              translation={translation}
+              setTranslation={setTranslation}
+              visible={showAIPanel}
+              analysisRequestKey={analysisRequestKey}
+              onAvailabilityChange={setAIAvailable}
+              onSummaryAvailabilityChange={setSummaryAvailable}
+            />
+          </div>
 
           <article
             key={article.id}
-            className="article-detail-enter prose prose-sm dark:prose-invert max-w-none"
+            className="article-detail-enter prose prose-sm dark:prose-invert mx-auto max-w-[720px]"
           >
-            <h1 className="text-2xl font-bold leading-tight mb-2">{article.title}</h1>
+            <h1 className="mb-3 text-2xl font-semibold leading-8">{article.title}</h1>
             {article.author && (
-              <p className="text-sm text-muted-foreground mb-4 not-prose">
+              <p className="not-prose mb-5 text-sm text-muted-foreground">
                 作者: {article.author}
               </p>
             )}

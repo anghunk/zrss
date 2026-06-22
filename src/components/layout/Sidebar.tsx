@@ -247,7 +247,7 @@ export function Sidebar() {
 
   return (
     <div
-      className="flex h-full w-60 flex-col border-r bg-muted/30"
+      className="flex h-full w-60 flex-col border-r bg-muted"
       onDragOver={(e) => {
         // 当拖拽的是 feed 并且鼠标在滚动区空白处 → 激活 root drop zone
         if (dragItem?.type === 'feed') {
@@ -456,7 +456,7 @@ export function Sidebar() {
           <div
             className={cn(
               'space-y-1',
-              dragItem?.type === 'feed' && 'bg-primary/5 rounded-md p-1'
+              dragItem?.type === 'feed' && 'rounded-md bg-brand-soft p-1'
             )}
             onDragOver={(e) => {
               if (dragItem?.type === 'feed') {
@@ -603,7 +603,7 @@ function RootDropZone({
         'flex items-center gap-2 rounded-md px-2 text-xs text-muted-foreground transition-colors',
         hasRootFeeds ? 'py-0.5 mb-0.5' : 'py-1.5 mb-1',
         active
-          ? 'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30'
+          ? 'bg-brand-soft text-brand ring-1 ring-inset ring-brand/30'
           : 'hover:bg-accent/30'
       )}
       onDragOver={onDragOver}
@@ -698,10 +698,10 @@ function FolderHeader({
         onToggle();
       }}
       className={cn(
-        'flex items-center gap-1 rounded px-2 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 select-none transition-colors',
+        'flex items-center gap-1 rounded px-2 py-1.5 text-sm font-medium leading-5 text-muted-foreground hover:text-foreground hover:bg-accent/50 select-none transition-colors',
         isDragging && 'opacity-40',
         insideActive &&
-          'bg-primary/10 text-primary ring-1 ring-inset ring-primary/30'
+          'bg-brand-soft text-brand ring-1 ring-inset ring-brand/30'
       )}
       title="拖拽分组可调整顺序；将订阅源拖到分组上可移入该分组"
     >
@@ -797,19 +797,19 @@ function FeedItem({
           onClick();
         }}
         className={cn(
-          'group flex items-center gap-2 rounded-md px-2 py-1.5 text-[15px] transition-colors select-none',
+          'group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm leading-5 transition-colors select-none',
           indent && 'ml-4',
           isDragging && 'opacity-40',
           !isDragging &&
             (active
-              ? 'bg-accent text-accent-foreground'
+              ? 'bg-brand-soft font-medium text-brand dark:bg-brand-soft/45'
               : 'hover:bg-accent/50')
         )}
         title="拖拽可移动到其他分组或根目录"
       >
         <div className="flex h-4 w-4 shrink-0 items-center justify-center">
           {feed.favicon ? (
-            <img src={feed.favicon} alt="" className="h-4 w-4 rounded-sm" />
+            <img src={feed.favicon} alt="" className="h-4 w-4" />
           ) : (
             <Rss className="h-3.5 w-3.5 text-muted-foreground" />
           )}
@@ -852,8 +852,10 @@ function SidebarItem({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 cursor-pointer rounded-md px-2 py-1.5 text-[15px] transition-colors',
-        active ? 'bg-accent text-accent-foreground font-medium' : 'hover:bg-accent/50'
+        'flex items-center gap-2 cursor-pointer rounded-md px-2 py-1.5 text-sm leading-5 transition-colors',
+        active
+          ? 'bg-brand-soft font-medium text-brand dark:bg-brand-soft/45'
+          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
       )}
       onClick={onClick}
     >
