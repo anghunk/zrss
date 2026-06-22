@@ -191,6 +191,8 @@
     flex-direction: column;
     align-items: stretch;
     gap: 0.5rem;
+    isolation: isolate;
+    z-index: 2147483647 !important;
   }
 
   .notification-toast-slot {
@@ -204,6 +206,30 @@
     transition:
       opacity 180ms ease-in,
       transform 180ms ease-in;
+  }
+
+  .notification-toast-success {
+    border-color: hsl(var(--success));
+    background: color-mix(in srgb, hsl(var(--success)) 18%, hsl(var(--popover)));
+    color: hsl(var(--foreground));
+  }
+
+  .notification-toast-error {
+    border-color: hsl(var(--destructive));
+    background: color-mix(in srgb, hsl(var(--destructive)) 16%, hsl(var(--popover)));
+    color: hsl(var(--foreground));
+  }
+
+  .notification-toast-warning {
+    border-color: hsl(var(--warning));
+    background: color-mix(in srgb, hsl(var(--warning)) 22%, hsl(var(--popover)));
+    color: hsl(var(--foreground));
+  }
+
+  .notification-toast-info {
+    border-color: hsl(var(--brand));
+    background: color-mix(in srgb, hsl(var(--brand)) 16%, hsl(var(--popover)));
+    color: hsl(var(--foreground));
   }
 
   .notification-toast-closing {

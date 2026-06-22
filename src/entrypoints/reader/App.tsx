@@ -74,6 +74,13 @@ export function App() {
 
   // 监听来自 background 的消息
   useEffect(() => {
+    if (typeof browser === 'undefined' || !browser.runtime?.onMessage) {
+      return;
+    }
+
+    /**
+     * 接收后台刷新完成消息，并同步阅读页数据。
+     */
     const handler = (message: any) => {
       if (message.type === 'FEEDS_UPDATED') {
         // 重新加载数据

@@ -14,37 +14,57 @@ import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 
 export function AddFeedDialog() {
-  const { addFeedOpen, setAddFeedOpen, prefillUrl, setPrefillUrl } = useUIStore();
-  const { addFeed, loading } = useFeedStore();
+  const {
+    addFeedOpen,
+    setAddFeedOpen,
+    prefillUrl,
+    setPrefillUrl,
+    addFeedFolderId,
+    setAddFeedFolderId,
+  } = useUIStore();
+  const { addFeed, folders, loading } = useFeedStore();
   const [url, setUrl] = useState('');
+  const [folderId, setFolderId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
-  // 当对话框通过 store 被程序化打开时（如从 popup 跳转过来），
-  // Radix Dialog 的 onOpenChange 不会触发，需要用 useEffect 同步 prefillUrl
+  /**
+   * 同步程序化打开弹窗时传入的订阅链接和目标分组。
+   */
   useEffect(() => {
     if (addFeedOpen) {
       setUrl(prefillUrl || '');
+      setFolderId(addFeedFolderId);
     }
-  }, [addFeedOpen, prefillUrl]);
+  }, [addFeedFolderId, addFeedOpen, prefillUrl]);
 
+  /**
+   * 处理添加订阅弹窗开关，并在关闭后重置临时状态。
+   */
   const handleOpenChange = (open: boolean) => {
     setAddFeedOpen(open);
     if (!open) {
       setUrl('');
+      setFolderId(null);
       setError('');
       setPrefillUrl('');
+      setAddFeedFolderId(null);
     }
   };
 
+  /**
+   * 提交订阅链接，并把新订阅放入选中的分组。
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
 
     setError('');
     try {
-      await addFeed(url.trim());
+      await addFeed(url.trim(), folderId);
       setUrl('');
+      setFolderId(null);
       setPrefillUrl('');
+      setAddFeedFolderId(null);
       setAddFeedOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : '添加订阅失败');
@@ -73,6 +93,22 @@ export function AddFeedDialog() {
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="feed-folder">所属分组</Label>
+            <select
+              id="feed-folder"
+              value={folderId || ''}
+              onChange={(e) => setFolderId(e.target.value || null)}
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+            >
+              <option value="">未分组</option>
+              {folders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex justify-end gap-2">
             <Button

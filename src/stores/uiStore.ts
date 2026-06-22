@@ -31,6 +31,7 @@ interface UIState {
   settings: Settings | null;
   addFeedOpen: boolean;
   prefillUrl: string; // 预填到「添加订阅」对话框的 URL
+  addFeedFolderId: string | null; // 添加订阅时默认放入的分组
   currentPage: AppPage;
 
   // Actions
@@ -41,7 +42,8 @@ interface UIState {
   updateSettings: (settings: Partial<Settings>) => Promise<void>;
   setAddFeedOpen: (open: boolean) => void;
   setPrefillUrl: (url: string) => void;
-  openAddFeedWithUrl: (url: string) => void; // 打开对话框并预填 URL
+  setAddFeedFolderId: (folderId: string | null) => void;
+  openAddFeedWithUrl: (url: string, folderId?: string | null) => void; // 打开对话框并预填 URL
   setPage: (page: AppPage) => void;
 }
 
@@ -51,6 +53,7 @@ export const useUIStore = create<UIState>((set, get) => ({
   settings: null,
   addFeedOpen: false,
   prefillUrl: '',
+  addFeedFolderId: null,
   currentPage: getPageFromHash(),
 
   initializeTheme: async () => {
@@ -94,7 +97,9 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   setAddFeedOpen: (open) => set({ addFeedOpen: open }),
   setPrefillUrl: (url) => set({ prefillUrl: url }),
-  openAddFeedWithUrl: (url) => set({ prefillUrl: url, addFeedOpen: true }),
+  setAddFeedFolderId: (folderId) => set({ addFeedFolderId: folderId }),
+  openAddFeedWithUrl: (url, folderId = null) =>
+    set({ prefillUrl: url, addFeedFolderId: folderId, addFeedOpen: true }),
   setPage: (page) => {
     setHashForPage(page);
     set({ currentPage: page });
