@@ -308,14 +308,6 @@ export function SubscriptionsPage() {
                                   {folderName}
                                 </Badge>
                               )}
-                              {feed.unreadCount > 0 && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[10px] px-1.5 py-0"
-                                >
-                                  {feed.unreadCount}
-                                </Badge>
-                              )}
                             </div>
                             <div className="flex items-center gap-1 text-xs text-muted-foreground">
                               <span className="truncate">{feed.url}</span>

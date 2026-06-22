@@ -9,6 +9,15 @@ interface WebDAVConfig {
   path: string;
 }
 
+/**
+ * WebDAV 备份文件中可被当前版本识别的数据结构。
+ */
+interface WebDAVBackupData {
+  feeds?: unknown;
+  folders?: unknown;
+  settings?: unknown;
+}
+
 function buildBasePath(config: WebDAVConfig): string {
   const baseUrl = config.url.replace(/\/+$/, '');
   if (!config.path) return baseUrl;
@@ -176,7 +185,9 @@ export async function listWebDAVBackups(): Promise<{ success: boolean; files: st
   }
 }
 
-// 从 WebDAV 导入数据
+/**
+ * 从 WebDAV 备份文件导入订阅、分组和扩展设置。
+ */
 export async function importFromWebDAV(fileName: string): Promise<{ success: boolean; message: string }> {
   try {
     const settings = await getSettings();
@@ -210,36 +221,59 @@ export async function importFromWebDAV(fileName: string): Promise<{ success: boo
     }
 
     const json = await response.text();
-    const importData = JSON.parse(json);
+    const importData = JSON.parse(json) as WebDAVBackupData;
 
     if (!importData.feeds || !Array.isArray(importData.feeds)) {
       throw new Error('备份文件格式无效');
     }
 
-    // 导入数据
+    // 导入文件夹并建立备份分组 ID 到本地分组 ID 的映射。
+    const folderIdMap = new Map<string, string>();
+    if (importData.folders && Array.isArray(importData.folders)) {
+      const existingFolders = await db.folders.toArray();
+      const existingFolderByName = new Map(
+        existingFolders.map((folder) => [folder.name, folder])
+      );
+      const existingFolderIds = new Set(existingFolders.map((folder) => folder.id));
+
+      const foldersToImport = importData.folders as Folder[];
+      for (const folder of foldersToImport) {
+        const existingFolder = existingFolderByName.get(folder.name);
+        if (existingFolder) {
+          folderIdMap.set(folder.id, existingFolder.id);
+          continue;
+        }
+
+        if (!existingFolderIds.has(folder.id)) {
+          await db.folders.add(folder);
+          existingFolderIds.add(folder.id);
+          existingFolderByName.set(folder.name, folder);
+        }
+        folderIdMap.set(folder.id, folder.id);
+      }
+    }
+
+    // 导入订阅源，并把分组引用映射到当前本地库中可渲染的分组。
     const existingFeeds = await db.feeds.toArray();
     const existingUrls = new Set(existingFeeds.map(f => f.url));
+    const currentFolderIds = new Set((await db.folders.toArray()).map((folder) => folder.id));
 
     let addedCount = 0;
     const feedsToImport = importData.feeds as Feed[];
 
     for (const feed of feedsToImport) {
       if (!existingUrls.has(feed.url)) {
-        await db.feeds.add(feed);
+        const mappedFolderId = feed.folderId
+          ? folderIdMap.get(feed.folderId) ??
+            (currentFolderIds.has(feed.folderId) ? feed.folderId : null)
+          : null;
+
+        await db.feeds.add({
+          ...feed,
+          folderId: mappedFolderId,
+        });
+        existingUrls.add(feed.url);
         addedCount++;
-      }
-    }
-
-    // 导入文件夹
-    if (importData.folders && Array.isArray(importData.folders)) {
-      const existingFolders = await db.folders.toArray();
-      const existingFolderNames = new Set(existingFolders.map(f => f.name));
-
-      const foldersToImport = importData.folders as Folder[];
-      for (const folder of foldersToImport) {
-        if (!existingFolderNames.has(folder.name)) {
-          await db.folders.add(folder);
-        }
       }
     }
 

@@ -52,7 +52,7 @@ const sections: { id: SettingsSection; label: string; icon: ReactNode }[] = [
 
 export function SettingsPage() {
   const { settings, loadSettings, updateSettings, theme, setTheme } = useUIStore();
-  const { loadFeeds } = useFeedStore();
+  const { loadFeeds, loadFolders } = useFeedStore();
   const showNotification = useNotificationStore((state) => state.showNotification);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
@@ -97,6 +97,17 @@ export function SettingsPage() {
     notifySettingsSaved('主题已更新');
   };
 
+  /**
+   * 导入外部数据后刷新依赖本地库的页面状态。
+   */
+  const reloadImportedLibraryState = async (includeSettings = false) => {
+    await Promise.all([
+      loadFeeds(),
+      loadFolders(),
+      ...(includeSettings ? [loadSettings()] : []),
+    ]);
+  };
+
   const handleExportOPML = async () => {
     try {
       const opml = await exportToOPML();
@@ -122,7 +133,7 @@ export function SettingsPage() {
     try {
       const text = await file.text();
       const result = await importFromOPML(text);
-      await loadFeeds();
+      await reloadImportedLibraryState();
       showNotification({
         message: `已导入 ${result.added} 个订阅` +
           (result.errors.length > 0 ? `，${result.errors.length} 个错误` : ''),
@@ -443,7 +454,7 @@ export function SettingsPage() {
                                             type: result.success ? 'success' : 'error',
                                           });
                                           if (result.success) {
-                                            await loadFeeds();
+                                            await reloadImportedLibraryState(true);
                                             setShowBackupDialog(false);
                                           }
                                         }}

@@ -13,6 +13,7 @@ import {
   useNotificationStore,
 } from '@/stores/notificationStore';
 import { cn } from '@/lib/utils';
+import { createPortal } from 'react-dom';
 
 const EXIT_DURATION = 180;
 
@@ -51,14 +52,17 @@ const notificationStyles: Record<
 export function NotificationCenter() {
   const notifications = useNotificationStore((state) => state.notifications);
 
-  return (
-    <div className="notification-stack pointer-events-none fixed left-1/2 top-4 z-[100] w-[min(calc(100vw-2rem),28rem)] -translate-x-1/2">
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div className="notification-stack pointer-events-none fixed left-1/2 top-4 z-[2147483647] w-[min(calc(100vw-2rem),28rem)] -translate-x-1/2">
       {notifications.map((notification) => (
         <div key={notification.id} className="notification-toast-slot">
           <NotificationToast notification={notification} />
         </div>
       ))}
-    </div>
+    </div>,
+    document.body
   );
 }
 
